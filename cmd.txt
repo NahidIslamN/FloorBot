@@ -1,0 +1,8 @@
+pip install --upgrade pip
+pip install -U -r requirements.txt
+
+
+
+
+07. Run celery worker in bash
+celery -A Floor_Bot worker -l info
