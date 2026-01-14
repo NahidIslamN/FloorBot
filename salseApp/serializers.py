@@ -214,6 +214,9 @@ class ProductSerializerDetailsOrder(serializers.ModelSerializer):
             product.images.add(img_obj)
 
         return product
+    
+
+
 class OrderSerializers(serializers.ModelSerializer):
     product = ProductSerializerDetailsOrder()
     
@@ -247,4 +250,21 @@ class OrderSerializers(serializers.ModelSerializer):
         read_only_fields = [
             'order_total',
         ]
+
+    
+
+class OrderCreateSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
+    qty = serializers.IntegerField()
+    
+    #address
+    country_or_region = serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    address_line_i = serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    address_line_ii = serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    suburb = serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    city = serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    postal_code = serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    state = serializers.CharField(required=False, allow_null=True,allow_blank=True)
+    
+
 

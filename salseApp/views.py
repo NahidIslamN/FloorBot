@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import ProductSerializerPublic, CategorisSerializers
+from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers
 from dashboard.models import Product, Category, OrderTable
 from .pagination import CustomPagination
 
@@ -129,10 +129,15 @@ class My_Confirmed_Ordedrs(APIView):
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(orders, request)
         if page is not None:
-            serializer = ProductSerializerPublic(page, many=True)
+            serializer = OrderSerializers(page, many=True)
             return paginator.get_paginated_response(serializer.data)
 
-        pass
+        serializer = OrderSerializers(orders, many=True)
+        return Response({
+            "success": True,
+            "message": "Data fetched successfully!",
+            "data": serializer.data
+        })
 
     def post(self, request):
-        pass
+        data = request.data
