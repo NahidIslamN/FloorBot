@@ -67,6 +67,7 @@ class Product(models.Model):
 
 class OrderTable(models.Model):
     ORDER_STATUS = (
+        # ('placed', "Placed"),
         ('placed', "Placed"),
         ('in_transit', 'In transit'),
         ('delivered', 'Delivered')
@@ -101,9 +102,9 @@ class OrderTable(models.Model):
     def calculate_order_total(self):
         """Calculate total based on sale or regular price"""
         if self.product.sale_price > 0:
-            price = self.product.sale_price
+            price = self.product.sale_price + self.delivery_fee + self.tax_fee
         else:
-            price = self.product.regular_price
+            price = self.product.regular_price + self.delivery_fee + self.tax_fee
 
         return Decimal(price) * self.quantity
 

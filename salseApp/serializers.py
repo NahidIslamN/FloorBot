@@ -155,11 +155,6 @@ class CategorisSerializers(serializers.ModelSerializer):
 
 
 
-
-
-
-
-
 class ProductSerializerDetailsOrder(serializers.ModelSerializer):
     # accept multiple image files
     images = serializers.ListField(
@@ -236,6 +231,7 @@ class OrderSerializers(serializers.ModelSerializer):
             # shipping info
             'ship_method',
             'carrier',
+            'tracking_no',
 
             # address
             'country_or_region',
@@ -253,18 +249,32 @@ class OrderSerializers(serializers.ModelSerializer):
 
     
 
+from rest_framework import serializers
+
 class OrderCreateSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
-    qty = serializers.IntegerField()
-    
-    #address
-    country_or_region = serializers.CharField(required=False, allow_null=True,allow_blank=True)
-    address_line_i = serializers.CharField(required=False, allow_null=True,allow_blank=True)
-    address_line_ii = serializers.CharField(required=False, allow_null=True,allow_blank=True)
-    suburb = serializers.CharField(required=False, allow_null=True,allow_blank=True)
-    city = serializers.CharField(required=False, allow_null=True,allow_blank=True)
-    postal_code = serializers.CharField(required=False, allow_null=True,allow_blank=True)
-    state = serializers.CharField(required=False, allow_null=True,allow_blank=True)
-    
+    qty = serializers.IntegerField(min_value=1)
 
+    delivery_charge = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=0
+    )
+    tax_charge = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=0
+    )
 
+    # Address
+    country_or_region = serializers.CharField(max_length=250)
+    address_line_i = serializers.CharField(max_length=250)
+    address_line_ii = serializers.CharField(
+        max_length=250,
+        required=False,
+        allow_blank=True
+    )
+    suburb = serializers.CharField(max_length=250)
+    city = serializers.CharField(max_length=250)
+    postal_code = serializers.CharField(max_length=50)
+    state = serializers.CharField(max_length=250)

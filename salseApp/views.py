@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers
+from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer
 from dashboard.models import Product, Category, OrderTable
 from .pagination import CustomPagination
 
@@ -120,7 +120,31 @@ class CategoryProductsView(APIView):
         })
 
 
-class My_Confirmed_Ordedrs(APIView):
+
+class User_Complete_Ordedrs(APIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+    
+    def get(self, request):
+        orders = OrderTable.objects.filter(user = request.user, status="delivered")
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(orders, request)
+        if page is not None:
+            serializer = OrderSerializers(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = OrderSerializers(orders, many=True)
+        return Response({
+            "success": True,
+            "message": "Data fetched successfully!",
+            "data": serializer.data
+        })
+
+
+
+
+
+class User_Ordedrs(APIView):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
     
@@ -141,3 +165,36 @@ class My_Confirmed_Ordedrs(APIView):
 
     def post(self, request):
         data = request.data
+
+        serializer = OrderCreateSerializer(data=data)
+        if serializer.is_valid():
+
+            user = request.user
+            print("user id:", user.id)
+            product = Product.objects.get(id = serializer.validated_data.get('product_id'))
+            print("Products:", Product)
+
+            qty = serializer.validated_data.get('qty')
+            delivery_charge = serializer.validated_data.get("delivery_charge")
+            tax_charge = serializer.validated_data.get('tax_charge')
+            print(f"qty:{qty}------delivary_charge{delivery_charge}-----tax_chager{tax_charge}")
+
+            
+
+            return Response(
+                {
+                    "success":True,
+                    "message":"request for order created",
+                    "data":data
+                }
+            )
+        else:
+            return Response(
+                {
+                    "success":True,
+                    "message":"validation errors!",
+                    "errors":serializer.errors
+                }
+            )
+
+

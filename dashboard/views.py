@@ -8,6 +8,15 @@ from .serializers import ProductSerializer
 
 # Create your views here.
 
+class HomePage(APIView):
+    def get(self, request):
+
+        return Response(
+            {
+                "message":"Hello World!"
+            }
+        )
+
 class Catalogs_Views(APIView):
     permission_classes = [IsAdminUser]
     def get(self, request):
