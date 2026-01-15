@@ -177,7 +177,7 @@ class User_Ordedrs(APIView):
             qty = serializer.validated_data.get('qty')
             delivery_charge = serializer.validated_data.get("delivery_charge")
             tax_charge = serializer.validated_data.get('tax_charge')
-            print(f"qty:{qty}------delivary_charge{delivery_charge}-----tax_chager{tax_charge}")
+            print(f"qty:{qty}------delivary_charge{delivery_charge}-----tax_chager{tax_charge} ")
 
             
 
