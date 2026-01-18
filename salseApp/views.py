@@ -5,6 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer
 from dashboard.models import Product, Category, OrderTable
 from .pagination import CustomPagination
+from Floor_Bot import settings
+
+import stripe
+stripe.api_key = settings.STRIPE_TEST_SECRET_KEY
+
 
 
 class Categoriesview(APIView):
@@ -168,33 +173,129 @@ class User_Ordedrs(APIView):
 
         serializer = OrderCreateSerializer(data=data)
         if serializer.is_valid():
+            try:
+                user = request.user
+                product = Product.objects.get(id = serializer.validated_data.get('product_id'))             
+                qty = serializer.validated_data.get('qty')
+                delivery_charge = serializer.validated_data.get("delivery_charge")
+                tax_charge = serializer.validated_data.get('tax_charge')
 
-            user = request.user
-            print("user id:", user.id)
-            product = Product.objects.get(id = serializer.validated_data.get('product_id'))
-            print("Products:", Product)
+                ammount = product.sale_price
+                ammount2 = product.regular_price
+                total_ammount = 0
 
-            qty = serializer.validated_data.get('qty')
-            delivery_charge = serializer.validated_data.get("delivery_charge")
-            tax_charge = serializer.validated_data.get('tax_charge')
-            print(f"qty:{qty}------delivary_charge{delivery_charge}-----tax_chager{tax_charge} ")
+                if ammount>0:
+                    ammount = ammount*qty
+                else:
+                    ammount = ammount2*qty
 
+                total_ammount = ammount+delivery_charge+tax_charge
             
 
-            return Response(
-                {
-                    "success":True,
-                    "message":"request for order created",
-                    "data":data
-                }
-            )
-        else:
-            return Response(
-                {
-                    "success":True,
-                    "message":"validation errors!",
-                    "errors":serializer.errors
-                }
-            )
+                country_or_region = serializer.validated_data.get('country_or_region')
+                address_line_i = serializer.validated_data.get('address_line_i')
+                address_line_ii = serializer.validated_data.get('address_line_ii')
+                suburb = serializer.validated_data.get('suburb')
+                city = serializer.validated_data.get('city')
+                postal_code = serializer.validated_data.get('postal_code')
+                state = serializer.validated_data.get('state')
+               
+            
+            except Exception as e:
+                return Response(
+                    {
+                        "success":True,
+                        "message":"validation errors!",
+                        "errors":f"{e}"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
 
+            product_name = product.product_title
+           
+            intent = stripe.PaymentIntent.create(
+            amount=int(total_ammount * 100),
+            currency="usd",
+            description=f"Payment for {product_name}",
+            metadata={
+                    "product_iid": product.id,
+                    "user_id": user.id,
+                    "qty": qty,
+                    "delevary_charge": delivery_charge,
+                    "tax_charge":tax_charge,
+
+                    #address info
+                    "country_or_region" : country_or_region,
+                    "address_line_i":address_line_i,
+                    "address_line_ii":address_line_ii,
+                    "suburb":suburb,
+                    "city":city,
+                    "postal_code":postal_code,
+                    "state":state
+                }
+
+            )
+     
+            return Response(
+                    {
+                        "client_secret": intent.client_secret,
+                        "publishable_key":settings.STRIPE_TEST_PUBLIC_KEY
+                    }
+                
+                )
+
+
+
+
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import stripe
+import json
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class StripeWebhookDebugAPIView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        payload = request.body
+        sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
+
+        if not sig_header:
+            return Response(
+                {"error": "Stripe-Signature header missing"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            event = stripe.Webhook.construct_event(
+                payload=payload,
+                sig_header=sig_header,
+                secret=settings.STRIPE_WEBHOCK_SECRET
+            )
+        except stripe.error.SignatureVerificationError as e:
+            return Response(
+                {"error": "Signature verification failed"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValueError as e:
+            return Response(
+                {"error": "Invalid payload"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if event["type"] == "payment_intent.succeeded":
+            intent = event["data"]["object"]
+            metadata = dict(intent.metadata)
+            print("📦 METADATA:", json.dumps(metadata, indent=2))
+
+        return Response({"status": "ok"}, status=status.HTTP_200_OK)

@@ -19,6 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from dashboard.views import HomePage
+from salseApp.views import StripeWebhookDebugAPIView
 
 urlpatterns = [
     path('', HomePage.as_view(), name="homepage"),
@@ -27,6 +28,7 @@ urlpatterns = [
     path('chats/', include('chat_app.urls')),
     path('admins/', include('dashboard.urls')),
     path('users/', include('salseApp.urls')),
+    path('stripe-webhock-after-payment-successs/', StripeWebhookDebugAPIView.as_view(), name='payment-success')
 ]
 
 
