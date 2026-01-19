@@ -2,10 +2,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer
-from dashboard.models import Product, Category, OrderTable
+from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer, ProductSearchSuggestion
+from dashboard.models import Product, Category, OrderTable, CustomUser
 from .pagination import CustomPagination
 from Floor_Bot import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.db.models import Q
+from decimal import Decimal
 
 import stripe
 stripe.api_key = settings.STRIPE_TEST_SECRET_KEY
@@ -26,64 +30,106 @@ class Categoriesview(APIView):
         )
 
 
+
+
+
+
+
+
+
+
+
 class ProductsView(APIView):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
 
     def get(self, request):
-        products = Product.objects.all().order_by('-id')
-        paginator = self.pagination_class()
-        page = paginator.paginate_queryset(products, request)
-        if page is not None:
-            serializer = ProductSerializerPublic(page, many=True)
-            return paginator.get_paginated_response(serializer.data)
+        search = request.GET.get('search', None)
         
-        serializer = ProductSerializerPublic(products, many=True)
-        return Response({
-            "success": True,
-            "message": "Data fetched successfully!",
-            "data": serializer.data
-        })
+        if search is None:
+            products = Product.objects.order_by('-total_salses')
+            paginator = self.pagination_class()
+            page = paginator.paginate_queryset(products, request)
+            if page is not None:
+                serializer = ProductSerializerPublic(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
+            
+            serializer = ProductSerializerPublic(products, many=True)
+            return Response({
+                "success": True,
+                "message": "Data fetched successfully!",
+                "data": serializer.data
+            })
+        elif search == "newest":
+            products = Product.objects.order_by('-created_at')
+            paginator = self.pagination_class()
+            page = paginator.paginate_queryset(products, request)
+            if page is not None:
+                serializer = ProductSerializerPublic(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
+            
+            serializer = ProductSerializerPublic(products, many=True)
+            return Response({
+                "success": True,
+                "message": "Data fetched successfully!",
+                "data": serializer.data
+            })
+        
+        elif search == "best":
+            products = Product.objects.order_by('-total_salses')
+            paginator = self.pagination_class()
+            page = paginator.paginate_queryset(products, request)
+            if page is not None:
+                serializer = ProductSerializerPublic(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
+            
+            serializer = ProductSerializerPublic(products, many=True)
+            return Response({
+                "success": True,
+                "message": "Data fetched successfully!",
+                "data": serializer.data
+            })
+
+        else:
+            products = Product.objects.filter(
+                Q(product_title__icontains=search) |
+                Q(item_description__icontains=search)
+            )
+            paginator = self.pagination_class()
+            page = paginator.paginate_queryset(products, request)
+            if page is not None:
+                serializer = ProductSerializerPublic(page, many=True)
+                return paginator.get_paginated_response(serializer.data)
+            
+            serializer = ProductSerializerPublic(products, many=True)
+            return Response({
+                "success": True,
+                "message": "Data fetched successfully!",
+                "data": serializer.data
+            })
+        
 
 
-class NewestProducts(APIView):
-    permission_classes = [IsAuthenticated]
-    pagination_class = CustomPagination
 
+
+
+
+
+
+
+
+
+class SearchSuggestion(APIView):
     def get(self, request):
-        products = Product.objects.all().order_by('-created_at')
-        paginator = self.pagination_class()
-        page = paginator.paginate_queryset(products, request)
-        if page is not None:
-            serializer = ProductSerializerPublic(page, many=True)
-            return paginator.get_paginated_response(serializer.data)
-        
-        serializer = ProductSerializerPublic(products, many=True)
+        products = Product.objects.order_by('-created_at')[0:400]
+        serializer = ProductSearchSuggestion(products, many=True)
         return Response({
             "success": True,
             "message": "Data fetched successfully!",
             "data": serializer.data
         })
-
-
-class BestProducts(APIView):
-    permission_classes = [IsAuthenticated]
-    pagination_class = CustomPagination
-
-    def get(self, request):
-        products = Product.objects.all().order_by('-total_salses')
-        paginator = self.pagination_class()
-        page = paginator.paginate_queryset(products, request)
-        if page is not None:
-            serializer = ProductSerializerPublic(page, many=True)
-            return paginator.get_paginated_response(serializer.data)
         
-        serializer = ProductSerializerPublic(products, many=True)
-        return Response({
-            "success": True,
-            "message": "Data fetched successfully!",
-            "data": serializer.data
-        })
+
 
 
 class ProductDetailView(APIView):
@@ -105,11 +151,20 @@ class ProductDetailView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
 
+
+
+
+
+
+
+
 class CategoryProductsView(APIView):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
 
     def get(self, request, category_id):
+        sub_categories = request.GET.get("sub_categories", None)
+        print(sub_categories)
         products = Product.objects.filter(main_category_id=category_id).order_by('-id')
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(products, request)
@@ -123,6 +178,20 @@ class CategoryProductsView(APIView):
             "message": "Data fetched successfully!",
             "data": serializer.data
         })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -149,12 +218,17 @@ class User_Complete_Ordedrs(APIView):
 
 
 
+
+
+
+
 class User_Ordedrs(APIView):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
     
     def get(self, request):
-        orders = OrderTable.objects.filter(user = request.user)
+        orders = OrderTable.objects.filter(user=request.user).exclude(status="delivered")
+   
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(orders, request)
         if page is not None:
@@ -167,14 +241,15 @@ class User_Ordedrs(APIView):
             "message": "Data fetched successfully!",
             "data": serializer.data
         })
+    
+
 
     def post(self, request):
         data = request.data
-
+        user = request.user
         serializer = OrderCreateSerializer(data=data)
         if serializer.is_valid():
-            try:
-                user = request.user
+            try:                
                 product = Product.objects.get(id = serializer.validated_data.get('product_id'))             
                 qty = serializer.validated_data.get('qty')
                 delivery_charge = serializer.validated_data.get("delivery_charge")
@@ -190,7 +265,6 @@ class User_Ordedrs(APIView):
                     ammount = ammount2*qty
 
                 total_ammount = ammount+delivery_charge+tax_charge
-            
 
                 country_or_region = serializer.validated_data.get('country_or_region')
                 address_line_i = serializer.validated_data.get('address_line_i')
@@ -216,10 +290,10 @@ class User_Ordedrs(APIView):
            
             intent = stripe.PaymentIntent.create(
             amount=int(total_ammount * 100),
-            currency="usd",
+            currency="gbp",
             description=f"Payment for {product_name}",
             metadata={
-                    "product_iid": product.id,
+                    "product_id": product.id,
                     "user_id": user.id,
                     "qty": qty,
                     "delevary_charge": delivery_charge,
@@ -239,10 +313,20 @@ class User_Ordedrs(APIView):
      
             return Response(
                     {
-                        "client_secret": intent.client_secret,
-                        "publishable_key":settings.STRIPE_TEST_PUBLIC_KEY
-                    }
-                
+                        "success": True,
+                        "payment": {
+                            "payment_intent_id": intent.id,
+                            "client_secret": intent.client_secret,
+                            "amount": total_ammount,
+                            "currency": "usd",
+                            "product_name": product_name,
+                            "qty": qty
+                        },
+                        "stripe": {
+                            "publishable_key": settings.STRIPE_TEST_PUBLIC_KEY
+                        }
+                    },
+                    status=status.HTTP_200_OK
                 )
 
 
@@ -250,15 +334,9 @@ class User_Ordedrs(APIView):
 
 
 
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-import stripe
-import json
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+
+
+
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -296,6 +374,43 @@ class StripeWebhookDebugAPIView(APIView):
         if event["type"] == "payment_intent.succeeded":
             intent = event["data"]["object"]
             metadata = dict(intent.metadata)
-            print("📦 METADATA:", json.dumps(metadata, indent=2))
+            product_id = metadata.get("product_id")    
+
+            product = Product.objects.get(id = int(product_id))
+            user = CustomUser.objects.get(id = int(metadata.get("user_id")))
+
+            qty = int(metadata.get("qty"))
+            delevary_charge = metadata.get('delevary_charge', '0')
+            tax_charge = metadata.get("tax_charge", '0')
+
+            address_line_i = metadata.get('address_line_i')
+            address_line_ii = metadata.get("address_line_ii")
+            postal_code = metadata.get("postal_code")
+            suburb = metadata.get("suburb")
+            state = metadata.get("state")
+            city = metadata.get("city")
+            country_or_region = metadata.get("country_or_region")
+
+            # #Create your order here .........
+            order = OrderTable.objects.create( 
+                user = user,
+                product = product,
+                quantity =qty,
+                delivery_fee = Decimal(delevary_charge),
+                tax_fee = Decimal(tax_charge),
+                is_paid = True,
+                country_or_region = country_or_region,
+                address_line_i = address_line_i,
+                address_line_ii = address_line_ii,
+                suburb = suburb,
+                city = city,
+                postal_code = postal_code,
+                state = state
+            )
+            order.save()
+            product.stock_quantity -= qty
+            product.total_salses += qty
+            product.save()
+
 
         return Response({"status": "ok"}, status=status.HTTP_200_OK)

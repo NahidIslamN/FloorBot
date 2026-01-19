@@ -278,3 +278,19 @@ class OrderCreateSerializer(serializers.Serializer):
     city = serializers.CharField(max_length=250)
     postal_code = serializers.CharField(max_length=50)
     state = serializers.CharField(max_length=250)
+
+
+
+
+
+
+
+class ProductSearchSuggestion(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            'id',
+            'product_title',            
+            'primary_image'           
+        ]
+
