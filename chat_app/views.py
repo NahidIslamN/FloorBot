@@ -7,6 +7,8 @@ from .serializers import *
 from django.db.models import Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .tasks import sent_message_to_chat
+from .tasks import sent_note_to_user
+from auths.models import CustomUser
 
 
 
@@ -25,6 +27,8 @@ class Notifications(APIView):
     permission_classes=[IsAuthenticated]
     def get(self, request):
         notifications = NoteModel.objects.filter(user=request.user)
+        notifications_update = NoteModel.objects.filter(user=request.user,is_seen=False)
+        notifications_update.update(is_seen=True)
 
         try:
             page = request.GET.get('page', 1)
@@ -45,115 +49,113 @@ class Notifications(APIView):
 
         serializer = NotificationSerializer(notifications, many=True)
         
+        
         return Response({"success":True,"message":"data fatched!","data":serializer.data}, status=status.HTTP_200_OK)
     
 
 
-class Chat_Create_lists(APIView):
+
+class User_Suport_Message(APIView):
     permission_classes = [IsAuthenticated]
+
     def get(self, request):
-        chats = Chat.objects.filter(
-            Q(participants=request.user) &
-            (Q(is_accepted_invitee=True) | Q(inviter=request.user))
-        ).order_by("-updated_at")
-        
-            
-        serializers = ChatListSerializer(chats, many=True)
-        
-        return Response({"success":True,"message":"data fatched!","data":serializers.data}, status=status.HTTP_200_OK)
-    
-    
-    def post(self, request):
-        serializer = Chat_or_Group_CreateSerializer(data=request.data)
-        if serializer.is_valid():
-            perticipance = request.data.get("user_list")
-            try:
-                perticipance.append(request.user.id)
-            except:
-                return Response({"success":False,"message":"validation errors!", "errors":{"message":"invalid python list! plece semt an arry to add user"}}, status=status.HTTP_400_BAD_REQUEST)
-            
-            if len(perticipance) == 2:
-                id = perticipance[0]
-                invitee = User.objects.get(id=id)
-                if Chat.objects.filter( Q(inviter=request.user, invitee=invitee) | Q(inviter=invitee, invitee=request.user),  chat_type='private').exists():
-                    chat = Chat.objects.filter( Q(inviter=request.user, invitee=invitee) | Q(inviter=invitee, invitee=request.user)).first()
-                    serializer = ChatListSerializer(chat)
-                    return Response({"success":True,"message":"already exiest chat!", "data":serializer.data}, status=status.HTTP_200_OK)
-                else:
-                    chats = Chat.objects.create(
-                        chat_type = 'private',
-                        name = serializer.data.get("group_name"),
-                        inviter = request.user,
-                        invitee = invitee
-                    )
-                    try:
-                        for us in perticipance:
-                            user = User.objects.get(id=us)
-                            chats.participants.add(user)
-                    except:
-                        pass
-
-            else:
-                chats = Chat.objects.create(
-                    chat_type = 'group',
-                    name = serializer.data.get("group_name"),
-                    inviter = request.user,
-                    is_accepted_invitee=True
-                )
-                chats.participants.add(request.user)
-
-                try:
-                    for us in perticipance:
-                        user = User.objects.get(id=us)
-                        chats.participants.add(user)
-                except:
-                    pass
-            serializer = ChatListSerializer(chats)
-            return Response({"success":True,"message":"successfully created!", "data":serializer.data}, status=status.HTTP_201_CREATED)
-        else:
-            return Response({
-                "success":False, "message":"validation errors!", "errors":serializer.errors
-            }, status= status.HTTP_400_BAD_REQUEST)
-    
-
-
-class SpamChatList(APIView):
-    permission_classes = [IsAuthenticated]
-    def get(self, request):
-        chats = Chat.objects.filter(
-            Q(participants=request.user) &
-            (Q(is_accepted_invitee=False) & Q(invitee=request.user))
-        )
-        page = request.GET.get('page', 1)
-        page_size = int(request.GET.get('page_size', 100))
-
-        paginator = Paginator(chats, page_size)
-
         try:
-            chats = paginator.page(page)
-        except PageNotAnInteger:
-            chats = paginator.page(1)
-        except EmptyPage:
-            chats = paginator.page(paginator.num_pages)
+            chat = Chat.objects.filter(participants=request.user).first()
+            if not chat:
+                superusers = CustomUser.objects.filter(is_superuser=True)
 
-        serializers = ChatListSerializer(chats, many=True)
-        
-        return Response({"success":True,"message":"data fatched!","data":serializers.data}, status=status.HTTP_200_OK)
+                chat = Chat.objects.create(
+                    chat_type='group',
+                    name='Support DMS'
+                )
+
+                # Assign participants correctly
+                chat.participants.set(superusers)
+                chat.participants.add(request.user)
+                chat.save()
+
+            # Serialize chat (IMPORTANT: pass request context)
+            chat_serializer = ChatListSerializer(
+                chat,
+                context={'request': request}
+            )
+
+            support_messages = Message.objects.filter(chat = chat).order_by("created_at")
+            message_serializers = Message_List_Serializer(support_messages, many=True)
+
+            return Response(
+                {
+                    "success": True,
+                    "status_message": "chat fetched successfully",
+                    "inbox_data": chat_serializer.data,
+                    "messages":message_serializers.data
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "message": "something went wrong!",
+                    "errors": str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+
+
+class SuperAdminSuportChatList(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        try:
+            chats = Chat.objects.order_by('-updated_at')
+            chat_serializer = ChatListSerializer(
+                chats,
+                context={'request': request},
+                many=True
+            )
+
+     
+            return Response(
+                {
+                    "success": True,
+                    "status_message": "chat fetched successfully",
+                    "inbox_data": chat_serializer.data,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "message": "something went wrong!",
+                    "errors": str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+
 
 
 class MessageList_Chats(APIView):
     permission_classes = [IsAuthenticated]
-    def get(self, request,pk):
+    def get(self, request,inbox_id):
         try:
-            chats = Chat.objects.get(id = pk)
+            chats = Chat.objects.get(id = inbox_id)
         except:
             return Response({"success":False,"message":"chat not found!" }, status= status.HTTP_404_NOT_FOUND)
         if request.user in chats.participants.all():
-            messages = Message.objects.filter(chat = chats)
+            messages = Message.objects.filter(chat = chats).order_by("created_at")
+
 
             serializers = Message_List_Serializer(messages, many=True)
-            chat=ChatListSerializer(chats)            
-            return Response({"success":True,"message":"data fatched!", "chat":chat.data, "data":serializers.data}, status=status.HTTP_200_OK)
+                      
+            return Response({"success":True,"message":"data fatched!","data":serializers.data}, status=status.HTTP_200_OK)
         else:
             return Response({"success":False,"message":"You are not a member of this chat!"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -162,6 +164,7 @@ class MessageList_Chats(APIView):
 class Accept_Leave_Add_People_Chat(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request,pk):
+
         try:
             chats = Chat.objects.get(id = pk)
         except:
@@ -169,6 +172,8 @@ class Accept_Leave_Add_People_Chat(APIView):
         if chats.invitee == request.user:
             chats.is_accepted_invitee = True
             chats.save()
+            # Notify inviter about chat acceptance
+            sent_note_to_user.delay(user_id=chats.inviter.id, title=f"Chat Request Accepted", content=f"{request.user.first_name} {request.user.last_name} accepted your chat request", note_type='success')
             return Response({"success":True,"message":"you are now connected!"}, status=status.HTTP_200_OK)
         else:
             return Response({"success":False,"message":"you are not able to access this!","error":"invalid message id!",}, status=status.HTTP_400_BAD_REQUEST)
@@ -196,6 +201,9 @@ class Accept_Leave_Add_People_Chat(APIView):
             
             if serializer.is_valid():
                 perticipance = serializer.data.get('user_list')
+                # Notify newly added users
+                for us in perticipance:
+                    sent_note_to_user.delay(user_id=us, title=f"Added to Group", content=f"You've been added to group '{chats.name}'", note_type='normal')
                 chats.chat_type = "group"
                 chats.save()
                 try:
@@ -223,6 +231,9 @@ class Accept_Leave_Add_People_Chat(APIView):
             serializer = Add_People_Group_CreateSerializer(data=request.data)
             if serializer.is_valid():
                 perticipance = serializer.data.get('user_list')
+                # Notify removed users
+                for us in perticipance:
+                    sent_note_to_user.delay(user_id=us, title=f"Removed from Group", content=f"You've been removed from group '{chats.name}'", note_type='warning')
                 chats.chat_type = "group"
                 try:
                     for us in perticipance:
@@ -241,10 +252,9 @@ class Accept_Leave_Add_People_Chat(APIView):
 
 
 class Sent_Message_Chats(APIView):
-    permission_classes = [IsAuthenticated]
-    
+    permission_classes = [IsAdminUser]
+
     def post(self, request, pk):
-        """Send a message with optional files to a chat."""
         try:
             chat = Chat.objects.get(id=pk)
         except Chat.DoesNotExist:
@@ -316,6 +326,9 @@ class Sent_Message_Chats(APIView):
                 "message": "error sending message",
                 "error": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+
 
 
     

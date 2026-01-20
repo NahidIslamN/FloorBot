@@ -79,8 +79,21 @@ class ProductSerializer(serializers.ModelSerializer):
 
         return product
 
+from auths.models import CustomUser
 
+class UserData(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = [
+            "full_name",
+            "image",
+        ]
 
-
-
-
+class CustoerFeedBack(serializers.ModelSerializer):
+    user = UserData()
+    class Meta:
+        model = OrderTable
+        fields = [
+            'user',
+            'custormer_feedback',
+        ]

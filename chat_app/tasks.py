@@ -3,23 +3,38 @@ from celery import shared_task
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from .models import Chat
+from .models import Chat, NoteModel
+from django.contrib.auth import get_user_model
 
 
 @shared_task
-def sent_note_to_user(user_id: int, title: str, content: str):
+def sent_note_to_user(user_id: int, title: str, content: str, note_type: str):
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id)
+        NoteModel.objects.create(
+            user=user,
+            title=title,
+            content=content,
+            note_type=note_type
+        )
+    except User.DoesNotExist:
+        return "User not found"
+
     channel_layer = get_channel_layer()
     message = {
         "title": title,
-        "content": content
+        "content": content,
+        "note_type":note_type
     }
 
     group_name = f"notification_{user_id}"
     async_to_sync(channel_layer.group_send)(
         group_name,
         {
-            "type": "sent_note",
+            "type": note_type,
             "message": message,
+            "saved": True
         }
     )
 

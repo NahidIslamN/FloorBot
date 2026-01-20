@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import *
+from .account_views import Profile_Data
 
 urlpatterns = [
 
@@ -11,6 +12,12 @@ urlpatterns = [
     path('category-products/<int:category_id>/', CategoryProductsView.as_view(), name='category-products'),
     path('categories/', Categoriesview.as_view(), name='category-products'),
     path('orders/', User_Ordedrs.as_view(), name='orders'),
-    path('delevard-orders/', User_Complete_Ordedrs.as_view(), name="deliverd_orders")
+    path('delevard-orders/', User_Complete_Ordedrs.as_view(), name="deliverd_orders"),
+
+
+
+    # accout url
+
+    path('profile-data/', Profile_Data.as_view(), name='profile-data!')
 
 ]

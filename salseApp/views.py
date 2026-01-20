@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer, ProductSearchSuggestion
+from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer, ProductSearchSuggestion, OrderFeedBackSerializer
 from dashboard.models import Product, Category, OrderTable, CustomUser
 from .pagination import CustomPagination
 from Floor_Bot import settings
@@ -328,6 +328,68 @@ class User_Ordedrs(APIView):
                     },
                     status=status.HTTP_200_OK
                 )
+        
+    
+    def put(self, request):
+        serializer = OrderFeedBackSerializer(data = request.data)
+        if serializer.is_valid():
+            try:
+                order = OrderTable.objects.get(id = serializer.validated_data.get('order_id'))
+                if order.status != "delivered":
+                    return Response(
+                        {
+                            "success":False,
+                            "message":"Product not deleverd yet!"
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                if order.user == request.user:
+                    if order.is_feedbacked:
+                        return Response(
+                            {
+                                "success":False,
+                                "message":"already feedback given!"
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    else:
+                        order.custormer_feedback = serializer.validated_data.get('feedback')
+                        order.is_feedbacked = True
+                        order.save()
+                        return Response(
+                            {
+                                "success":True,
+                                "message":"successfully feedback sent!"
+                            },
+                            status=status.HTTP_200_OK
+                        )
+                else:
+                    return Response(
+                        {
+                            "success":False,
+                            "message":"wrong order id!"
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            except:
+                return Response(
+                    {
+                        "success":False,
+                        "message":"order not found!"
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            return Response(
+                {
+                    "success":False,
+                    "message":"validation error!"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 
 
 

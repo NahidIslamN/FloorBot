@@ -294,3 +294,37 @@ class ProductSearchSuggestion(serializers.ModelSerializer):
             'primary_image'           
         ]
 
+
+
+
+
+class OrderFeedBackSerializer(serializers.Serializer):  
+    order_id = serializers.IntegerField()
+    feedback = serializers.CharField()
+
+
+
+
+######################### account related serializer ###############################
+from auths.models import CustomUser
+
+class UserAcountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = [
+            "full_name",
+            "email",
+            "phone",
+            "image",
+            "latitude",
+            "longitude",
+
+            #delivary address
+            "country_or_region",
+            "address_line_i",
+            "address_line_ii",
+            "suburb",
+            "city",
+            "postal_code",
+            "state"
+        ]

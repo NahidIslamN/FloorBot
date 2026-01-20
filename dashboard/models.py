@@ -99,6 +99,10 @@ class OrderTable(models.Model):
     postal_code = models.CharField(max_length=250, null=True, blank=True)
     state = models.CharField(max_length=250, null=True, blank=True)
 
+    custormer_feedback = models.TextField(blank=True, null=True)
+    is_feedbacked = models.BooleanField(default=False)
+
+
     def calculate_order_total(self):
         """Calculate total based on sale or regular price"""
         if self.product.sale_price > 0:

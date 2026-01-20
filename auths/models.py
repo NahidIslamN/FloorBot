@@ -21,6 +21,15 @@ class CustomUser(AbstractUser):
     
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+
+    ## Delevary Address
+    country_or_region = models.CharField(max_length=250, null=True, blank=True)
+    address_line_i = models.CharField(max_length=250, null=True, blank=True)
+    address_line_ii = models.CharField(max_length=250, null=True, blank=True)
+    suburb = models.CharField(max_length=250, null=True, blank=True)
+    city = models.CharField(max_length=250, null=True, blank=True)
+    postal_code = models.CharField(max_length=250, null=True, blank=True)
+    state = models.CharField(max_length=250, null=True, blank=True)
     
     def __str__(self):
         return self.email + self.username

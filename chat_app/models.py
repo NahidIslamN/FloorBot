@@ -3,15 +3,18 @@ from django.conf import settings
 
 User = settings.AUTH_USER_MODEL
 
-
 # ----------------- Chat Models -----------------
 
-
-
 class NoteModel(models.Model):
+    NOTE_TYPE = (
+        ("success","Success"),
+        ("warning","Warning"),
+        ("normal","Normal"),
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     content = models.TextField()
+    note_type = models.CharField(max_length=25, choices=NOTE_TYPE, default="normal")
     is_seen = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

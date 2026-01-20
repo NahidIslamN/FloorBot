@@ -2,8 +2,12 @@ from .models import Product, Images, Category
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
-from .serializers import ProductSerializer
+from rest_framework.permissions import IsAdminUser
+from .serializers import ProductSerializer, CustoerFeedBack
+import stripe
+from Floor_Bot import settings
+stripe.api_key = settings.STRIPE_TEST_SECRET_KEY
+from .models import OrderTable
 
 
 # Create your views here.
@@ -16,6 +20,8 @@ class HomePage(APIView):
                 "message":"Hello World!"
             }
         )
+    
+
 
 class Catalogs_Views(APIView):
     permission_classes = [IsAdminUser]
@@ -97,6 +103,53 @@ class Catalogs_Views(APIView):
                 "success":False,
                 "message":"Product not found !"
             }, status=status.HTTP_404_NOT_FOUND)
+
+
+
+class CustomerFeedBacke(APIView):
+    permission_classes = [IsAdminUser]
+    def get(self, request):
+        feedbacks = OrderTable.objects.filter(is_feedbacked = True).order_by('-id')[0:500]
+        serializer = CustoerFeedBack(feedbacks, many=True)
+        return Response(
+            {
+                "success":True,
+                "message":"customer feedback!",
+                "feedbacks":serializer.data
+            }
+        )
+
+
+
+
+
+
+######################## wallet section ###################################
+
+class StripeWalletBalance(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):            
+        balance = stripe.Balance.retrieve()
+        available_amount = 0
+        pending_amount = 0
+        currency=None
+        if balance['available']:
+            available_amount = balance['available'][0]['amount'] / 100
+            currency = balance['available'][0]['currency']
+
+        if balance['pending']:
+            pending_amount = balance['pending'][0]['amount'] / 100
+
+        return Response({
+            "success": True,
+            "total_balance": available_amount,
+            "pending_amount": pending_amount,
+            "currency": currency
+        },
+        status=status.HTTP_200_OK
+    )
+
 
 
 
