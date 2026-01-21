@@ -97,3 +97,91 @@ class CustoerFeedBack(serializers.ModelSerializer):
             'user',
             'custormer_feedback',
         ]
+
+
+
+class OrderTableSerializerUpdate(serializers.ModelSerializer):
+    class Meta:
+        model = OrderTable
+        fields = [
+            "quantity",
+            "ship_method",
+            "status",
+            "carrier",
+            "tracking_no",
+            "is_shiped",
+        ]
+
+
+
+class CustomerDataSerialziser(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = [
+            "full_name",
+            "email",
+            "phone",
+            "image"
+
+        ]
+
+
+class OrderedProduct(serializers.ModelSerializer):
+    # accept multiple image files
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
+
+    # show images in response
+    uploaded_images = ImageSerializer(
+        source='images',
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = Product
+        fields = [
+            'id',
+            'product_title',
+            'item_description',
+            'primary_image',
+            'images',
+            'uploaded_images',
+            # pricing
+            'regular_price',
+            'sale_price',
+            'product_id'
+        ]
+
+
+class OrderTableSerializerView(serializers.ModelSerializer):
+    user = CustomerDataSerialziser()
+    product = OrderedProduct()
+    class Meta:
+        model = OrderTable
+        fields = [
+            "user",
+            "product",
+            "quantity",
+            "delivery_fee",
+            "tax_fee",
+            "order_total",
+            "ship_method",
+            "status",
+            "carrier",
+            "tracking_no",
+            "is_paid",
+            "is_shiped",
+            "country_or_region",
+            "address_line_i",
+            "address_line_ii",
+            "suburb",
+            "city",
+            "postal_code",
+            "state",
+            "custormer_feedback",
+            "is_feedbacked",
+        ]

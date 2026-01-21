@@ -3,11 +3,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAdminUser
-from .serializers import ProductSerializer, CustoerFeedBack
+from .serializers import ProductSerializer, CustoerFeedBack, OrderTableSerializerView, OrderTableSerializerUpdate
 import stripe
 from Floor_Bot import settings
 stripe.api_key = settings.STRIPE_TEST_SECRET_KEY
 from .models import OrderTable
+from Floor_Bot.pagination import CustomPagination
+
 
 
 # Create your views here.
@@ -118,9 +120,100 @@ class CustomerFeedBacke(APIView):
                 "feedbacks":serializer.data
             }
         )
+    
 
 
 
+class OrdersManagementsAdmin(APIView):
+    permission_classes = [IsAdminUser]
+    pagination_class = CustomPagination
+
+    def get(self, request):
+        query = request.GET.get('query', None)
+
+        # Filter orders based on query
+        if query is None:
+            orders = OrderTable.objects.all().order_by('-id')
+        elif query == "shipped":
+            orders = OrderTable.objects.filter(status="in_transit").order_by('-id')
+        elif query == "unshipped":
+            orders = OrderTable.objects.filter(status="placed").order_by('-id')
+        elif query == "cancelled":
+            orders = OrderTable.objects.filter(status="cancelled").order_by('-id')
+        elif query == "delivered":
+            orders = OrderTable.objects.filter(status="delivered").order_by('-id')
+        else:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Invalid query parameter. Use 'shipped', 'unshipped', or 'cancelled'.",
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Pagination
+        paginator = self.pagination_class()
+        paginated_orders = paginator.paginate_queryset(orders, request)
+        serializer = OrderTableSerializerView(paginated_orders, many=True)
+
+        return paginator.get_paginated_response({
+            "success": True,
+            "message": "Orders fetched successfully.",
+            "orders": serializer.data
+        })
+
+
+
+class OrdersManagementsAdmin(APIView):
+    permission_classes = [IsAdminUser]
+    pagination_class = CustomPagination
+
+    def get(self, request, pk):
+        try:
+            order = OrderTable.objects.get(id = pk)
+            serializer = OrderTableSerializerView(order)
+            return Response(
+                {
+                    "success":True,
+                    "message":"",
+                    "order_data":serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+        except:
+            return Response(
+                {
+                    "success":False,
+                    "message":"Order not found!",
+                    
+                }, status=status.HTTP_404_NOT_FOUND
+            )
+    
+
+    def put(self, request, pk):
+        try:
+            order = OrderTable.objects.get(id = pk)
+            serializer = OrderTableSerializerUpdate(instance=order, data = request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+            return Response(
+                {
+                    "success":True,
+                    "message":"",
+                    "order_data":serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+        except:
+            return Response(
+                {
+                    "success":False,
+                    "message":"Order not found!",
+                }, status=status.HTTP_404_NOT_FOUND
+            )
+
+
+      
 
 
 

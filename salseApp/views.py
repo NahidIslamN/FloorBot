@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer, ProductSearchSuggestion, OrderFeedBackSerializer
 from dashboard.models import Product, Category, OrderTable, CustomUser
-from .pagination import CustomPagination
+from Floor_Bot.pagination import CustomPagination
 from Floor_Bot import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -60,6 +60,7 @@ class ProductsView(APIView):
                 "message": "Data fetched successfully!",
                 "data": serializer.data
             })
+        
         elif search == "newest":
             products = Product.objects.order_by('-created_at')
             paginator = self.pagination_class()

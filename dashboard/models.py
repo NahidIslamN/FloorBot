@@ -67,10 +67,10 @@ class Product(models.Model):
 
 class OrderTable(models.Model):
     ORDER_STATUS = (
-        # ('placed', "Placed"),
         ('placed', "Placed"),
         ('in_transit', 'In transit'),
-        ('delivered', 'Delivered')
+        ('delivered', 'Delivered'),
+        ('cancelled', "Cancelled"),
     )
     user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -117,6 +117,6 @@ class OrderTable(models.Model):
         super().save(*args, **kwargs)
     
     class Meta:
-        ordering = ['-updated_at']
+        ordering = ['-created_at']
 
     
