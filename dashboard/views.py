@@ -195,6 +195,20 @@ class OrdersManagementsAdmin(APIView):
             order = OrderTable.objects.get(id = pk)
             serializer = OrderTableSerializerUpdate(instance=order, data = request.data, partial=True)
             if serializer.is_valid():
+                qty = int(serializer.validated_data.get('quantity')) 
+                if order.quantity == qty:
+                    pass
+                else:
+                    if order.quantity > qty:
+                        order.product.stock_quantity += (order.quantity-qty)
+                        order.product.total_salses -= (order.quantity-qty)
+                    else:
+                        order.product.stock_quantity += (order.quantity-qty)
+                        order.product.total_salses -= (order.quantity-qty)
+                    
+                    order.product.save()
+
+                    
                 serializer.save()
             return Response(
                 {

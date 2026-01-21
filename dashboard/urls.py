@@ -9,5 +9,6 @@ urlpatterns = [
 
     ##order managements Curds
     path('orders/', OrdersManagementsAdmin.as_view(), name='orders'),
+    path('orders/<int:pk>/', OrdersManagementsAdmin.as_view(), name='orders'),
     
 ]

@@ -60,7 +60,7 @@ class ProductsView(APIView):
                 "message": "Data fetched successfully!",
                 "data": serializer.data
             })
-        
+            
         elif search == "newest":
             products = Product.objects.order_by('-created_at')
             paginator = self.pagination_class()
