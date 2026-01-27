@@ -50,14 +50,14 @@ class Catalogs_Views(APIView):
                     "product_details":serializer.data
                     }
                 )
-        else:
-            return Response(
-                {
-                    "success":False,
-                    "message":"Required Field Mising!",
-                    "errors":serializer.errors
-                }
-            )
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     def put(self, request, pk):
 
@@ -79,14 +79,14 @@ class Catalogs_Views(APIView):
                     "product_details":serializer.data
                     }
                 )
-        else:
-            return Response(
-                {
-                    "success":False,
-                    "message":"Required Field Mising!",
-                    "errors":serializer.errors
-                }
-            )
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     def delete(self, request, pk):
 
@@ -212,11 +212,11 @@ class OrdersManagementsAdmin(APIView):
                 serializer.save()
             return Response(
                 {
-                    "success":True,
-                    "message":"",
-                    "order_data":serializer.data
+                    "success":False,
+                    "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                    
                 },
-                status=status.HTTP_200_OK
+                status=status.HTTP_400_BAD_REQUEST
             )
         except:
             return Response(

@@ -22,14 +22,14 @@ import requests
 
 class SignupView(APIView):
     def post(self, request):
-        serializers = UsermodelSignupSerializer(data = request.data)
-        email = serializers.initial_data['email']
+        serializer = UsermodelSignupSerializer(data = request.data)
+        email = serializer.initial_data['email']
         user = CustomUser.objects.filter(email=email).first()
         
         if user and user.is_email_varified==False:
             user.email = email
-            user.set_password(serializers.initial_data['password'])
-            user.full_name = serializers.initial_data['full_name']
+            user.set_password(serializer.initial_data['password'])
+            user.full_name = serializer.initial_data['full_name']
             otp = f"{random.randint(0, 999999):06}"
             subject = 'Verification'
             plain_message = f"your otp is {otp}"
@@ -37,20 +37,27 @@ class SignupView(APIView):
             user.otp = otp
             user.save()
            
-            return Response({ "success": True, "message": "user create successfully!"},status=status.HTTP_201_CREATED)
+            return Response({ "success": True, "message": "User created successfully!"},status=status.HTTP_201_CREATED)
             
-        if serializers.is_valid():
-            user = serializers.save()
+        if serializer.is_valid():
+            user = serializer.save()
             otp = f"{random.randint(0, 999999):06}"
             subject = 'Verification'
             plain_message = f"your otp is {otp}"
             sent_email_to.delay(email= user['email'], text = plain_message, subject=subject)
-            user = CustomUser.objects.get(email = serializers.data["email"])
+            user = CustomUser.objects.get(email = serializer.data["email"])
             user.otp = otp
             user.save()
-            return Response({ "success": True, "message": "user create successfully!"},status=status.HTTP_201_CREATED)
+            return Response({ "success": True, "message": "User created successfully!"},status=status.HTTP_201_CREATED)
 
-        return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
     
 
 class Verify_Email_Signup(APIView):
@@ -65,14 +72,21 @@ class Verify_Email_Signup(APIView):
                     otp = str(random.randint(000000, 999999))
                     user.otp = otp
                     user.save()
-                    return Response({"message":"verifyed successfully"}, status = status.HTTP_200_OK)
+                    return Response({"message":"Email verified successfully!"}, status = status.HTTP_200_OK)
                 else:
-                    return Response({"success":False,"message":"wrong varification code!"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"success":False,"message":"Incorrect verification code!"}, status=status.HTTP_400_BAD_REQUEST)
 
             except CustomUser.DoesNotExist:
-                return Response({"success":False,"message":"user not found"},status=status.HTTP_400_BAD_REQUEST)
+                return Response({"success":False,"message":"User not found."},status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"success":False,"message":"validation errors","errors":serializers.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializers.errors.values()))[0])}",
+                                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 
@@ -129,7 +143,14 @@ class LoginView(APIView):
                 )
 
             return Response({"success":False,"message":"username or password Invalid!"}, status=status.HTTP_400_BAD_REQUEST)   
-        return Response({"success":False,"message":"validation errors", "errors":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
     
 
 class ChangePassword(APIView):
@@ -146,7 +167,14 @@ class ChangePassword(APIView):
                 return Response({"message":"Password changed successfully!"}, status= status.HTTP_200_OK)
             else:
                 return Response({"message":"worng old password!"}, status=status.HTTP_400_BAD_REQUEST )
-        return Response({"success":False, "message":"validation errors", "errors":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
     
 
 
@@ -173,7 +201,14 @@ class FogetPasswordView(APIView):
             except CustomUser.DoesNotExist:
                 return Response({"success":False,"message":"user not found!"}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({"success":False, "message":"validation errors", "errors":serializer.errors }, status= status.HTTP_400_BAD_REQUEST)
+            return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
         
 
 
@@ -198,7 +233,14 @@ class Verify_User_ForgetPassword(APIView):
                     return Response({"success":False,"message":"wrong varification code!"}, status=status.HTTP_400_BAD_REQUEST)
             except CustomUser.DoesNotExist:
                 return Response({"success":False,"message":"User not found!"}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"success":False,"message":"validation errors", "errors":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",                   
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class ResetPasswordView(APIView):
@@ -210,7 +252,13 @@ class ResetPasswordView(APIView):
             user.set_password(serializer.data['new_password'])
             user.save()
             return Response({ "success": True, "message": "password reset successfully", "data": None }, status=status.HTTP_200_OK)
-        return Response({ "success": False, "message": "validation error!", "errors": serializer.errors }, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 

@@ -165,7 +165,7 @@ class CategoryProductsView(APIView):
 
     def get(self, request, category_id):
         sub_categories = request.GET.get("sub_categories", None)
-        print(sub_categories)
+        # print(sub_categories)
         products = Product.objects.filter(main_category_id=category_id).order_by('-id')
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(products, request)
@@ -330,6 +330,14 @@ class User_Ordedrs(APIView):
                     status=status.HTTP_200_OK
                 )
         
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
     
     def put(self, request):
         serializer = OrderFeedBackSerializer(data = request.data)
@@ -382,14 +390,14 @@ class User_Ordedrs(APIView):
                     },
                     status=status.HTTP_404_NOT_FOUND
                 )
-        else:
-            return Response(
-                {
-                    "success":False,
-                    "message":"validation error!"
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return Response(
+            {
+                "success":False,
+                "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 
