@@ -24,11 +24,11 @@ from salseApp.views import StripeWebhookDebugAPIView
 urlpatterns = [
     path('', HomePage.as_view(), name="homepage"),
     path('admin/', admin.site.urls),
-    path('auth/', include('auths.urls')),
-    path('chats/', include('chat_app.urls')),
-    path('admins/', include('dashboard.urls')),
-    path('users/', include('salseApp.urls')),
-    path('stripe-webhock-after-payment-successs/', StripeWebhookDebugAPIView.as_view(), name='payment-success')
+    path('api/v1/auth/', include('auths.urls')),
+    path('api/v1/chats/', include('chat_app.urls')),
+    path('api/v1/admins/', include('dashboard.urls')),
+    path('api/v1/users/', include('salseApp.urls')),
+    path('api/v1/stripe-webhock-after-payment-successs/', StripeWebhookDebugAPIView.as_view(), name='payment-success')
 ]
 
 

@@ -63,6 +63,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'materials',
             'format',
             'is_underlay_required',
+            'is_calculate',
             'available_colors',
             'pattern_type',
             'stock_quantity'
@@ -153,7 +154,8 @@ class OrderedProduct(serializers.ModelSerializer):
             # pricing
             'regular_price',
             'sale_price',
-            'product_id'
+            'product_id',
+            'is_calculate',
         ]
 
 

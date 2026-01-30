@@ -67,6 +67,7 @@ class ProductSerializerPublic(serializers.ModelSerializer):
             'materials',
             'format',
             'is_underlay_required',
+            'is_calculate',
             'available_colors',
             'pattern_type',
             'stock_quantity'
@@ -131,6 +132,7 @@ class ProductSerializerDetails(serializers.ModelSerializer):
             'materials',
             'format',
             'is_underlay_required',
+            'is_calculate',
             'available_colors',
             'pattern_type',
             'stock_quantity'
@@ -196,7 +198,8 @@ class ProductSerializerDetailsOrder(serializers.ModelSerializer):
             'length',
             'width',
             'thickness',
-            'weight',            
+            'weight',
+            'is_calculate',         
         ]
 
     def create(self, validated_data):

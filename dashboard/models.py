@@ -55,6 +55,8 @@ class Product(models.Model):
     pattern_type = models.CharField(max_length=250)
     stock_quantity = models.IntegerField(default=0)
 
+    is_calculate = models.BooleanField(default=False)
+
     # Best Salse
     total_salses = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)

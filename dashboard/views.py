@@ -124,7 +124,7 @@ class CustomerFeedBacke(APIView):
 
 
 
-class OrdersManagementsAdmin(APIView):
+class OrdersManagementsAdminView(APIView):
     permission_classes = [IsAdminUser]
     pagination_class = CustomPagination
 
@@ -164,7 +164,7 @@ class OrdersManagementsAdmin(APIView):
 
 
 
-class OrdersManagementsAdmin(APIView):
+class OrdersManagementsAdminDetails(APIView):
     permission_classes = [IsAdminUser]
     pagination_class = CustomPagination
 

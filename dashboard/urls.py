@@ -8,7 +8,7 @@ urlpatterns = [
     path('feed-backs/', CustomerFeedBacke.as_view(), name='feedbackd'),
 
     ##order managements Curds
-    path('orders/', OrdersManagementsAdmin.as_view(), name='orders'),
-    path('orders/<int:pk>/', OrdersManagementsAdmin.as_view(), name='orders'),
+    path('admin-orders/', OrdersManagementsAdminView.as_view(), name='orders'),
+    path('orders/<int:pk>/', OrdersManagementsAdminDetails.as_view(), name='orders'),
     
 ]
