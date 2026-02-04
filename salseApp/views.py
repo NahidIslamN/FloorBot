@@ -446,6 +446,7 @@ class StripeWebhookDebugAPIView(APIView):
             intent = event["data"]["object"]
             metadata = dict(intent.metadata)
             product_id = metadata.get("product_id")    
+            paid_amount = Decimal(intent["amount_received"])
 
             product = Product.objects.get(id = int(product_id))
             user = CustomUser.objects.get(id = int(metadata.get("user_id")))
@@ -470,6 +471,7 @@ class StripeWebhookDebugAPIView(APIView):
                 delivery_fee = Decimal(delevary_charge),
                 tax_fee = Decimal(tax_charge),
                 is_paid = True,
+                paid_ammount = paid_amount,
                 country_or_region = country_or_region,
                 address_line_i = address_line_i,
                 address_line_ii = address_line_ii,
@@ -477,6 +479,7 @@ class StripeWebhookDebugAPIView(APIView):
                 city = city,
                 postal_code = postal_code,
                 state = state
+                
             )
             order.save()
             product.stock_quantity -= qty

@@ -35,6 +35,8 @@ class Product(models.Model):
     #pricing data
     regular_price = models.DecimalField(max_digits=10,decimal_places=2,default=0.00)
     sale_price = models.DecimalField(max_digits=10,decimal_places=2,default=0.00)
+    tax_price = models.DecimalField(max_digits=10,decimal_places=2,default=0.00)
+    # delivary_fee = models.DecimalField(max_digits=10,decimal_places=2,default=0.00)
     product_id = models.CharField(max_length=250, unique=True)
     pack_coverage = models.CharField(max_length=250)
 
@@ -47,13 +49,13 @@ class Product(models.Model):
     coverage_per_pack = models.CharField(max_length=250)
 
     #Categorized Details
-    pile_height = models.CharField(max_length=250)
+    pile_height = models.CharField(max_length=250, null=True, blank=True)
     materials = models.TextField(blank=True)
-    format = models.CharField(max_length=250)
-    is_underlay_required = models.BooleanField(default=False)
+    format = models.CharField(max_length=250, null=True, blank=True)
+    is_underlay_required = models.BooleanField(default=False, null=True, blank=True)
     available_colors = models.TextField(blank=True)
-    pattern_type = models.CharField(max_length=250)
-    stock_quantity = models.IntegerField(default=0)
+    pattern_type = models.CharField(max_length=250, null=True, blank=True)
+    stock_quantity = models.IntegerField(default=0, null=True, blank=True)
 
     is_calculate = models.BooleanField(default=False)
 
@@ -87,6 +89,8 @@ class OrderTable(models.Model):
     tracking_no = models.CharField(unique=True, null=True, blank=True)
 
     is_paid = models.BooleanField(default=False)
+   
+    paid_ammount = models.DecimalField(decimal_places=2, max_digits=10, default=0.00)
     is_shiped = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -113,6 +117,9 @@ class OrderTable(models.Model):
             price = self.product.regular_price + self.delivery_fee + self.tax_fee
 
         return Decimal(price) * self.quantity
+
+
+
 
     def save(self, *args, **kwargs):
         self.order_total = self.calculate_order_total()

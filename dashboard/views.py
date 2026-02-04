@@ -195,6 +195,63 @@ class OrdersManagementsAdminDetails(APIView):
             order = OrderTable.objects.get(id = pk)
             serializer = OrderTableSerializerUpdate(instance=order, data = request.data, partial=True)
             if serializer.is_valid():
+                
+
+                status = serializer.validated_data.get('status')
+                if status == 'cancelled':
+                    order.status = "cancelled"
+                    order.save()
+                    return Response(
+                        {
+                            "success":True,
+                            "message":"Order Cancled!"
+                        }
+                    )
+                qty = int(serializer.validated_data.get('quantity')) 
+                
+                if order.quantity == qty:
+                    pass
+                else:
+                    if order.quantity > qty:
+                        order.product.stock_quantity += (order.quantity-qty)
+                        order.product.total_salses -= (order.quantity-qty)
+                    else:
+                        order.product.stock_quantity += (order.quantity-qty)
+                        order.product.total_salses -= (order.quantity-qty)
+                    
+                    order.product.save()
+
+                    
+                serializer.save()
+                return Response(
+                    {
+                        "success":True,
+                        "message":"Shipment confirmed!"
+                    }
+                )
+            return Response(
+                {
+                    "success":False,
+                    "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                                    
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            print(e)
+            return Response(
+                {
+                    "success":False,
+                    "message":"Order not found!",
+                }, status=status.HTTP_404_NOT_FOUND
+            )
+
+
+    def patch(self, request, pk):
+        try:
+            order = OrderTable.objects.get(id = pk)
+            serializer = OrderTableSerializerUpdate(instance=order, data = request.data, partial=True)
+            if serializer.is_valid():
                 qty = int(serializer.validated_data.get('quantity')) 
                 if order.quantity == qty:
                     pass
@@ -225,6 +282,7 @@ class OrdersManagementsAdminDetails(APIView):
                     "message":"Order not found!",
                 }, status=status.HTTP_404_NOT_FOUND
             )
+
 
 
       

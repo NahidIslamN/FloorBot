@@ -47,6 +47,7 @@ class ProductSerializer(serializers.ModelSerializer):
             # pricing
             'regular_price',
             'sale_price',
+            'tax_price',
             'product_id',
             'pack_coverage',
 
@@ -95,6 +96,7 @@ class CustoerFeedBack(serializers.ModelSerializer):
     class Meta:
         model = OrderTable
         fields = [
+            'id',            
             'user',
             'custormer_feedback',
         ]
@@ -105,11 +107,13 @@ class OrderTableSerializerUpdate(serializers.ModelSerializer):
     class Meta:
         model = OrderTable
         fields = [
+            'id', 
             "quantity",
             "ship_method",
             "status",
             "carrier",
             "tracking_no",
+            "delivery_fee",
             "is_shiped",
         ]
 
@@ -165,6 +169,7 @@ class OrderTableSerializerView(serializers.ModelSerializer):
     class Meta:
         model = OrderTable
         fields = [
+            'id', 
             "user",
             "product",
             "quantity",
@@ -176,6 +181,7 @@ class OrderTableSerializerView(serializers.ModelSerializer):
             "carrier",
             "tracking_no",
             "is_paid",
+            "paid_ammount",
             "is_shiped",
             "country_or_region",
             "address_line_i",
@@ -186,4 +192,5 @@ class OrderTableSerializerView(serializers.ModelSerializer):
             "state",
             "custormer_feedback",
             "is_feedbacked",
+            "created_at",
         ]
