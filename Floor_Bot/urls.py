@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/v1/chats/', include('chat_app.urls')),
     path('api/v1/admins/', include('dashboard.urls')),
     path('api/v1/users/', include('salseApp.urls')),
+    path('api/v1/ai/', include('ai_app.urls')),
     path('api/v1/stripe-webhock-after-payment-successs/', StripeWebhookDebugAPIView.as_view(), name='payment-success')
 ]
 

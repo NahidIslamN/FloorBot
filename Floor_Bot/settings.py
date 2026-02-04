@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'chat_app.apps.ChatAppConfig',
     'salseApp',
     'corsheaders',
+    'ai_app'
 ]
 
 MIDDLEWARE = [
