@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer, ProductSearchSuggestion, OrderFeedBackSerializer
+from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer, ProductSearchSuggestion, OrderFeedBackSerializer, OrderDelivaryStatusUpdateSerializer
 from dashboard.models import Product, Category, OrderTable, CustomUser
 from Floor_Bot.pagination import CustomPagination
 from Floor_Bot import settings
@@ -228,7 +228,7 @@ class User_Ordedrs(APIView):
     pagination_class = CustomPagination
     
     def get(self, request):
-        orders = OrderTable.objects.filter(user=request.user).exclude(status="delivered")
+        orders = OrderTable.objects.filter(user=request.user)#.exclude(status="delivered")
    
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(orders, request)
@@ -253,19 +253,9 @@ class User_Ordedrs(APIView):
             try:                
                 product = Product.objects.get(id = serializer.validated_data.get('product_id'))             
                 qty = serializer.validated_data.get('qty')
-                delivery_charge = serializer.validated_data.get("delivery_charge")
-                tax_charge = serializer.validated_data.get('tax_charge')
-
-                ammount = product.sale_price
-                ammount2 = product.regular_price
-                total_ammount = 0
-
-                if ammount>0:
-                    ammount = ammount*qty
-                else:
-                    ammount = ammount2*qty
-
-                total_ammount = ammount+delivery_charge+tax_charge
+                
+                price = product.sale_price if product.sale_price > 0 else product.regular_price
+                total_amount = price * qty
 
                 country_or_region = serializer.validated_data.get('country_or_region')
                 address_line_i = serializer.validated_data.get('address_line_i')
@@ -290,15 +280,13 @@ class User_Ordedrs(APIView):
             product_name = product.product_title
            
             intent = stripe.PaymentIntent.create(
-            amount=int(total_ammount * 100),
+            amount=int(total_amount * 100),
             currency="gbp",
             description=f"Payment for {product_name}",
             metadata={
                     "product_id": product.id,
                     "user_id": user.id,
                     "qty": qty,
-                    "delevary_charge": delivery_charge,
-                    "tax_charge":tax_charge,
 
                     #address info
                     "country_or_region" : country_or_region,
@@ -318,7 +306,7 @@ class User_Ordedrs(APIView):
                         "payment": {
                             "payment_intent_id": intent.id,
                             "client_secret": intent.client_secret,
-                            "amount": total_ammount,
+                            "amount": total_amount,
                             "currency": "usd",
                             "product_name": product_name,
                             "qty": qty
@@ -398,8 +386,40 @@ class User_Ordedrs(APIView):
             },
             status=status.HTTP_400_BAD_REQUEST
         )
+    
 
 
+    
+    def patch(self, request):
+        serializer = OrderDelivaryStatusUpdateSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = request.user
+            try:
+                order = OrderTable.objects.get(id=serializer.validated_data.get("order_id"))
+                if order.user == user:
+                    order.status = serializer.validated_data.get("delivary_status")
+                    order.save()
+                    return Response(
+                        {"success": True, "message": "Successfully Updated!"},
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    return Response(
+                        {"success": False, "message": "This is not your order!"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except OrderTable.DoesNotExist:
+                return Response(
+                    {"success": False, "message": "Order not found!"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            return Response(
+                {"success": False, "message": "Invalid data", "errors": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+                
 
 
 
@@ -447,14 +467,13 @@ class StripeWebhookDebugAPIView(APIView):
             metadata = dict(intent.metadata)
             product_id = metadata.get("product_id")    
             paid_amount = Decimal(intent["amount_received"])
+            paid_amount_doler = Decimal(paid_amount) / 100
 
             product = Product.objects.get(id = int(product_id))
             user = CustomUser.objects.get(id = int(metadata.get("user_id")))
 
             qty = int(metadata.get("qty"))
-            delevary_charge = metadata.get('delevary_charge', '0')
-            tax_charge = metadata.get("tax_charge", '0')
-
+            
             address_line_i = metadata.get('address_line_i')
             address_line_ii = metadata.get("address_line_ii")
             postal_code = metadata.get("postal_code")
@@ -468,10 +487,8 @@ class StripeWebhookDebugAPIView(APIView):
                 user = user,
                 product = product,
                 quantity =qty,
-                delivery_fee = Decimal(delevary_charge),
-                tax_fee = Decimal(tax_charge),
                 is_paid = True,
-                paid_ammount = paid_amount,
+                paid_ammount = paid_amount_doler,
                 country_or_region = country_or_region,
                 address_line_i = address_line_i,
                 address_line_ii = address_line_ii,

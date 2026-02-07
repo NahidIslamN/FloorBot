@@ -70,7 +70,8 @@ class ProductSerializerPublic(serializers.ModelSerializer):
             'is_calculate',
             'available_colors',
             'pattern_type',
-            'stock_quantity'
+            'stock_quantity',
+            'return_policy'
             
         ]
 
@@ -257,18 +258,6 @@ from rest_framework import serializers
 class OrderCreateSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
     qty = serializers.IntegerField(min_value=1)
-
-    delivery_charge = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        min_value=0
-    )
-    tax_charge = serializers.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        min_value=0
-    )
-
     # Address
     country_or_region = serializers.CharField(max_length=250)
     address_line_i = serializers.CharField(max_length=250)
@@ -306,6 +295,15 @@ class OrderFeedBackSerializer(serializers.Serializer):
     feedback = serializers.CharField()
 
 
+class OrderDelivaryStatusUpdateSerializer(serializers.Serializer):  
+    order_id = serializers.IntegerField()
+    delivary_status = serializers.ChoiceField(
+        choices=["delivered", "cancelled"],
+        error_messages={"invalid_choice": "Status must be either 'delivered' or 'cancelled'"}
+    )
+
+
+
 
 
 ######################### account related serializer ###############################
@@ -329,5 +327,6 @@ class UserAcountSerializer(serializers.ModelSerializer):
             "suburb",
             "city",
             "postal_code",
-            "state"
+            "state",
+            "delivery_instructions",
         ]

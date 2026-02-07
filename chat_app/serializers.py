@@ -89,7 +89,7 @@ class Message_List_Serializer(serializers.ModelSerializer):
     sender = UserSerializer()
     class Meta:
         model = Message
-        fields = ['text', "sender"]
+        fields = ['text', "sender", "created_at"]
        
 
 

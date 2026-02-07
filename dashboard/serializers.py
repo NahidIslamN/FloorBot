@@ -67,7 +67,8 @@ class ProductSerializer(serializers.ModelSerializer):
             'is_calculate',
             'available_colors',
             'pattern_type',
-            'stock_quantity'
+            'stock_quantity',
+            'return_policy',
         ]
 
     def create(self, validated_data):
@@ -126,8 +127,8 @@ class CustomerDataSerialziser(serializers.ModelSerializer):
             "full_name",
             "email",
             "phone",
-            "image"
-
+            "image",
+            
         ]
 
 

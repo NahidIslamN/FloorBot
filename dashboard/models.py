@@ -59,6 +59,8 @@ class Product(models.Model):
 
     is_calculate = models.BooleanField(default=False)
 
+    return_policy = models.TextField(default="30-day return policy. Items must be in original condition with packaging. Return shipping costs may apply.")
+
     # Best Salse
     total_salses = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -111,12 +113,16 @@ class OrderTable(models.Model):
 
     def calculate_order_total(self):
         """Calculate total based on sale or regular price"""
-        if self.product.sale_price > 0:
-            price = self.product.sale_price + self.delivery_fee + self.tax_fee
-        else:
-            price = self.product.regular_price + self.delivery_fee + self.tax_fee
+        # Base price
+        base_price = self.product.sale_price if self.product.sale_price > 0 else self.product.regular_price
 
-        return Decimal(price) * self.quantity
+        # Safely handle delivery_fee and tax_fee
+        delivery_fee = self.delivery_fee or Decimal('0.00')
+        tax_fee = self.tax_fee or Decimal('0.00')
+
+        total_price = Decimal(base_price) + Decimal(delivery_fee) + Decimal(tax_fee)
+
+        return total_price * self.quantity
 
 
 

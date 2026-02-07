@@ -30,6 +30,7 @@ class CustomUser(AbstractUser):
     city = models.CharField(max_length=250, null=True, blank=True)
     postal_code = models.CharField(max_length=250, null=True, blank=True)
     state = models.CharField(max_length=250, null=True, blank=True)
+    delivery_instructions = models.TextField(null=True, blank=True)
     
     def __str__(self):
         return self.email + self.username
