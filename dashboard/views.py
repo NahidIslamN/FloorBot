@@ -122,7 +122,7 @@ class CustomerFeedBacke(APIView):
         )
     
 
-
+from django.db.models import Q
 
 class OrdersManagementsAdminView(APIView):
     permission_classes = [IsAdminUser]
@@ -130,19 +130,50 @@ class OrdersManagementsAdminView(APIView):
 
     def get(self, request):
         query = request.GET.get('query', None)
+        search = request.GET.get('search', None)
 
         # Filter orders based on query
         if query is None:
-            orders = OrderTable.objects.all().order_by('-id')
+            if search is None:
+                orders = OrderTable.objects.all().order_by('-id')
+            else:
+                orders = OrderTable.objects.filter(
+                    Q(user__full_name__icontains=search) | Q(id__icontains=search)
+                )
+
         elif query == "shipped":
-            orders = OrderTable.objects.filter(status="in_transit").order_by('-id')
+            if search is None:
+                orders = OrderTable.objects.filter(status="in_transit").order_by('-id')
+            else:
+                orders = OrderTable.objects.filter(
+                    Q(status="in_transit") & (Q(user__full_name__icontains=search) | Q(id__icontains=search) ) 
+                )
+
         elif query == "unshipped":
-            orders = OrderTable.objects.filter(status="placed").order_by('-id')
+            if search is None:
+                orders = OrderTable.objects.filter(status="placed").order_by('-id')
+            else:
+                orders = OrderTable.objects.filter(
+                    Q(status="placed") & (Q(user__full_name__icontains=search) | Q(id__icontains=search) ) 
+                )
         elif query == "cancelled":
-            orders = OrderTable.objects.filter(status="cancelled").order_by('-id')
+          
+            if search is None:
+                orders = OrderTable.objects.filter(status="cancelled").order_by('-id')
+            else:
+                orders = OrderTable.objects.filter(
+                    Q(status="cancelled") & (Q(user__full_name__icontains=search) | Q(id__icontains=search) ) 
+                )
         elif query == "delivered":
-            orders = OrderTable.objects.filter(status="delivered").order_by('-id')
+            if search is None:
+                orders = OrderTable.objects.filter(status="delivered").order_by('-id')
+            else:
+                orders = OrderTable.objects.filter(
+                    Q(status="delivered") & (Q(user__full_name__icontains=search) | Q(id__icontains=search) ) 
+                )
         else:
+           
+           
             return Response(
                 {
                     "success": False,

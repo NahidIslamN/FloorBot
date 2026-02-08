@@ -100,6 +100,7 @@ class CustoerFeedBack(serializers.ModelSerializer):
             'id',            
             'user',
             'custormer_feedback',
+            'updated_at'
         ]
 
 
