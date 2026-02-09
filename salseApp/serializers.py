@@ -230,6 +230,7 @@ class OrderSerializers(serializers.ModelSerializer):
 
             # fees (optional / admin controlled)
             'delivery_fee',
+            "delivery_date",
             'tax_fee',
 
             # shipping info

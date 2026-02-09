@@ -82,6 +82,7 @@ class OrderTable(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField()
     delivery_fee = models.DecimalField(default=0.00, decimal_places=2, max_digits=9)
+    delivery_date = models.DateField(null=True, blank=True)
     tax_fee = models.DecimalField(default=0.00, decimal_places=2, max_digits=9)
     order_total = models.DecimalField(default=0.00, decimal_places=2, max_digits=9)
 

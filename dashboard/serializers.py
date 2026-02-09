@@ -116,6 +116,7 @@ class OrderTableSerializerUpdate(serializers.ModelSerializer):
             "carrier",
             "tracking_no",
             "delivery_fee",
+            "delivery_date",
             "is_shiped",
         ]
 
@@ -176,6 +177,7 @@ class OrderTableSerializerView(serializers.ModelSerializer):
             "product",
             "quantity",
             "delivery_fee",
+            "delivery_date",
             "tax_fee",
             "order_total",
             "ship_method",
