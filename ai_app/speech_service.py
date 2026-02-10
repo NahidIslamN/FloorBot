@@ -53,3 +53,22 @@ class SpeechService:
         """
         audio_bytes = base64.b64decode(base64_audio)
         return self.transcribe_audio(audio_bytes, audio_format, language)
+    
+    def transcribe_file(self, audio_file, language: str = "en") -> str:
+        """
+        Transcribe audio file directly (for file uploads)
+        
+        Args:
+            audio_file: Django UploadedFile object from request.FILES
+            language: Language code (default: en)
+            
+        Returns:
+            Transcribed text
+        """
+        transcript = self.client.audio.transcriptions.create(
+            model=self.model,
+            file=audio_file,
+            language=language
+        )
+        
+        return transcript.text

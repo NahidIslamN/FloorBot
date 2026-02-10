@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from ai_app.serializers import (
     TextMessageSerializer,
     VoiceMessageSerializer,
+    VoiceFileSerializer,
     ChatResponseSerializer,
     ConversationHistorySerializer,
     SessionSerializer,
@@ -69,11 +70,11 @@ class TextChatView(APIView):
 
 
 class VoiceChatView(APIView):
-    """Handle voice-based chat messages"""
+    """Handle voice-based chat messages (base64 format)"""
     permission_classes = [AllowAny]
     
     def post(self, request):
-        """Send voice message to AI"""
+        """Send voice message to AI (base64 encoded)"""
         serializer = VoiceMessageSerializer(data=request.data)
         
         if not serializer.is_valid():
@@ -109,6 +110,50 @@ class VoiceChatView(APIView):
             return Response({
                 "session_id": session_id,
                 "response": f"Failed to process voice message: {str(e)}",
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class VoiceFileChatView(APIView):
+    """Handle voice file uploads from microphone (multipart/form-data)"""
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """Send voice file to AI (typical mic button format)"""
+        serializer = VoiceFileSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        audio_file = serializer.validated_data['audio_file']
+        session_id = serializer.validated_data.get('session_id')
+        language = serializer.validated_data['language']
+        
+        try:
+            speech_service = SpeechService()
+            transcribed_text = speech_service.transcribe_file(
+                audio_file,
+                language
+            )
+            
+            chatbot = FloorBotAI()
+            
+            if not session_id:
+                session = chatbot.session_manager.create_session()
+                session_id = session.session_id
+            
+            response_data = chatbot.chat(session_id, transcribed_text)
+            response_data['transcribed_text'] = transcribed_text
+            
+            response_serializer = ChatResponseSerializer(response_data)
+            
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        
+        except Exception as e:
+            return Response({
+                "session_id": session_id if session_id else None,
+                "response": f"Failed to process voice file: {str(e)}",
                 "success": False,
                 "error": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

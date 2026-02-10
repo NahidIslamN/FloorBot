@@ -11,12 +11,19 @@ class TextMessageSerializer(serializers.Serializer):
 
 
 class VoiceMessageSerializer(serializers.Serializer):
-    """Serializer for voice message input"""
+    """Serializer for voice message input (base64 format)"""
     audio_data = serializers.CharField(required=True, help_text="Base64 encoded audio")
     audio_format = serializers.ChoiceField(
-        choices=['wav', 'mp3', 'webm', 'm4a'],
+        choices=['wav', 'mp3', 'webm', 'm4a', 'ogg'],
         default='wav'
     )
+    session_id = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    language = serializers.CharField(default='en', max_length=10)
+
+
+class VoiceFileSerializer(serializers.Serializer):
+    """Serializer for voice file upload (multipart/form-data)"""
+    audio_file = serializers.FileField(required=True, help_text="Audio file from microphone")
     session_id = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     language = serializers.CharField(default='en', max_length=10)
 
