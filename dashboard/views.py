@@ -193,7 +193,7 @@ class OrdersManagementsAdminView(APIView):
             "orders": serializer.data
         })
 
-
+from chat_app.tasks import sent_note_to_user
 
 class OrdersManagementsAdminDetails(APIView):
     permission_classes = [IsAdminUser]
@@ -254,6 +254,7 @@ class OrdersManagementsAdminDetails(APIView):
 
                     
                 serializer.save()
+                sent_note_to_user.delay(user_id=order.user.id, title=f"Shipment confirmed!", content = "Great news! Your shipment has been confirmed and is on its way. You can track the status anytime from your dashboard. Thank you for choosing us!", note_type='success') 
                 return Response(
                     {
                         "success":True,

@@ -1,3 +1,6 @@
-from django.contrib import admin
+"""
+Admin configuration for AI App
 
-# Register your models here.
+Note: No models to register as sessions are managed via cache
+"""
+from django.contrib import admin

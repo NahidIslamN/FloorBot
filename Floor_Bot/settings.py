@@ -200,3 +200,12 @@ CHANNEL_LAYERS = {
     },
 }
 
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": config("REDIS_CACHE_URL", default="redis://redis:6379/1"),
+        "OPTIONS": {},
+        "TIMEOUT": int(config("CACHE_TIMEOUT", default=60 * 15)),
+    }
+}
