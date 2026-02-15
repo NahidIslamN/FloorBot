@@ -65,9 +65,14 @@ class SpeechService:
         Returns:
             Transcribed text
         """
+        # Read the file content and wrap it in BytesIO for OpenAI API
+        audio_bytes = audio_file.read()
+        audio_buffer = io.BytesIO(audio_bytes)
+        audio_buffer.name = audio_file.name
+        
         transcript = self.client.audio.transcriptions.create(
             model=self.model,
-            file=audio_file,
+            file=audio_buffer,
             language=language
         )
         
