@@ -26,7 +26,8 @@ class Product(models.Model):
     brand_manufacturer = models.CharField(max_length=250)
     item_description = models.TextField(default='')
     main_category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
-    sub_category = models.TextField(default='')
+    sub_category = models.TextField(default='', null=True, blank=True)
+    tags = models.TextField(default='', null=True, blank=True)
 
     #uplodes
     images = models.ManyToManyField(Images, related_name='images',blank=True)
@@ -118,10 +119,9 @@ class OrderTable(models.Model):
         base_price = self.product.sale_price if self.product.sale_price > 0 else self.product.regular_price
 
         # Safely handle delivery_fee and tax_fee
-        delivery_fee = self.delivery_fee or Decimal('0.00')
         tax_fee = self.tax_fee or Decimal('0.00')
 
-        total_price = Decimal(base_price) + Decimal(delivery_fee) + Decimal(tax_fee)
+        total_price = Decimal(base_price)
 
         return total_price * self.quantity
 

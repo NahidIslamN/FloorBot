@@ -138,7 +138,7 @@ class OrdersManagementsAdminView(APIView):
                 orders = OrderTable.objects.all().order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(user__full_name__icontains=search) | Q(id__icontains=search)
+                    Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)
                 )
 
         elif query == "shipped":
@@ -146,7 +146,7 @@ class OrdersManagementsAdminView(APIView):
                 orders = OrderTable.objects.filter(status="in_transit").order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(status="in_transit") & (Q(user__full_name__icontains=search) | Q(id__icontains=search) ) 
+                    Q(status="in_transit") & (Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)) 
                 )
 
         elif query == "unshipped":
@@ -154,7 +154,7 @@ class OrdersManagementsAdminView(APIView):
                 orders = OrderTable.objects.filter(status="placed").order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(status="placed") & (Q(user__full_name__icontains=search) | Q(id__icontains=search) ) 
+                    Q(status="placed") & (Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)) 
                 )
         elif query == "cancelled":
           
@@ -162,17 +162,16 @@ class OrdersManagementsAdminView(APIView):
                 orders = OrderTable.objects.filter(status="cancelled").order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(status="cancelled") & (Q(user__full_name__icontains=search) | Q(id__icontains=search) ) 
+                    Q(status="cancelled") & (Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)) 
                 )
         elif query == "delivered":
             if search is None:
                 orders = OrderTable.objects.filter(status="delivered").order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(status="delivered") & (Q(user__full_name__icontains=search) | Q(id__icontains=search) ) 
+                    Q(status="delivered") & (Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)) 
                 )
         else:
-           
            
             return Response(
                 {

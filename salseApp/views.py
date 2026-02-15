@@ -255,7 +255,7 @@ class User_Ordedrs(APIView):
                 qty = serializer.validated_data.get('qty')
                 
                 price = product.sale_price if product.sale_price > 0 else product.regular_price
-                total_amount = price * qty
+                total_amount = (price+product.tax_price )* qty 
 
                 country_or_region = serializer.validated_data.get('country_or_region')
                 address_line_i = serializer.validated_data.get('address_line_i')

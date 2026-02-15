@@ -38,6 +38,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'item_description',
             'main_category',
             'sub_category',
+            'tags',
 
             # uploads
             'primary_image',
@@ -161,6 +162,7 @@ class OrderedProduct(serializers.ModelSerializer):
             # pricing
             'regular_price',
             'sale_price',
+            'tax_price',
             'product_id',
             'is_calculate',
         ]
@@ -178,7 +180,7 @@ class OrderTableSerializerView(serializers.ModelSerializer):
             "quantity",
             "delivery_fee",
             "delivery_date",
-            "tax_fee",
+            # "tax_fee",
             "order_total",
             "ship_method",
             "status",
