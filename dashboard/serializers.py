@@ -38,7 +38,6 @@ class ProductSerializer(serializers.ModelSerializer):
             'item_description',
             'main_category',
             'sub_category',
-            'tags',
 
             # uploads
             'primary_image',
@@ -48,7 +47,6 @@ class ProductSerializer(serializers.ModelSerializer):
             # pricing
             'regular_price',
             'sale_price',
-            'tax_price',
             'product_id',
             'pack_coverage',
 
@@ -69,7 +67,8 @@ class ProductSerializer(serializers.ModelSerializer):
             'available_colors',
             'pattern_type',
             'stock_quantity',
-            'return_policy',
+            'return_policy'
+            
         ]
 
     def create(self, validated_data):
