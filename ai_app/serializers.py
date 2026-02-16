@@ -123,12 +123,56 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_primary_image(self, obj):
         """Get the URL for primary_image"""
         try:
-            if hasattr(obj, 'primary_image') and obj.primary_image:
-                # Return the URL path (Django will handle the full URL if MEDIA_URL is set)
-                return obj.primary_image.url
-            return None
+            # Handle model instance with FileField/ImageField
+            if hasattr(obj, 'primary_image'):
+                primary = getattr(obj, 'primary_image')
+                if primary:
+                    # Preferred: direct URL from storage
+                    try:
+                        url = getattr(primary, 'url', None)
+                        if url:
+                            return url
+                    except Exception:
+                        # storage may raise when file missing; fall through to name/path fallback
+                        pass
+
+                    # Fallback: use file name/path and MEDIA_URL if available
+                    name = getattr(primary, 'name', None) or str(primary)
+                    if name:
+                        try:
+                            from django.conf import settings
+                            media_url = getattr(settings, 'MEDIA_URL', '') or ''
+                            if media_url:
+                                return media_url.rstrip('/') + '/' + name.lstrip('/')
+                            return name
+                        except Exception:
+                            return name
+
+            # Handle dict-like representations coming from chatbot/service
+            if isinstance(obj, dict):
+                val = obj.get('primary_image')
+                if not val:
+                    return None
+
+                # If it's already a full URL, return it
+                if isinstance(val, str) and (val.startswith('http://') or val.startswith('https://')):
+                    return val
+
+                # If it's a path/name, try MEDIA_URL fallback
+                try:
+                    from django.conf import settings
+                    media_url = getattr(settings, 'MEDIA_URL', '') or ''
+                    if media_url and isinstance(val, str):
+                        return media_url.rstrip('/') + '/' + str(val).lstrip('/')
+                except Exception:
+                    pass
+
+                return val
+
         except Exception:
             return None
+
+        return None
 
 
 
