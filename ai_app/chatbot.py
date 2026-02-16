@@ -248,6 +248,8 @@ class FloorBotAI:
         """Execute a function call from GPT"""
         
         if function_name == "search_products":
+            from ai_app.serializers import ProductSerializer
+            
             products = self.product_service.search_products(
                 product_type=arguments.get("product_type"),
                 color=arguments.get("color"),
@@ -269,27 +271,11 @@ class FloorBotAI:
                 }
                 session.context["last_products"] = [p.id for p in products]
             
-            product_list = [
-                {
-                    "id": p.id,
-                    "name": p.name,
-                    "category": p.category,
-                    "price": float(p.price_per_unit),
-                    "sale_price": float(p.sale_price if p.sale_price > 0 else p.price_per_unit),
-                    "unit": p.unit,
-                    "coverage": float(p.coverage_per_unit),
-                    "discount": float(p.discount_percentage),
-                    "stock": int(p.stock_quantity),
-                    "description": p.description[:200] if p.description else "",
-                    "color": p.color or "",
-                    "material": p.material or "",
-                    "image_url": p.image_url or ""
-                }
-                for p in products
-            ]
+            # Serialize using ModelSerializer
+            serializer = ProductSerializer(products, many=True)
             
             return {
-                "products": product_list,
+                "products": serializer.data,
                 "count": len(products)
             }
         

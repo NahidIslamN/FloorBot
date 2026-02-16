@@ -21,7 +21,7 @@ class DjangoProductService:
                        max_price: Optional[float] = None,
                        pattern: Optional[str] = None,
                        keyword: Optional[str] = None,
-                       limit: int = 10) -> List[ProductInfo]:
+                       limit: int = 10) -> List[Product]:
         """
         Search for products based on criteria
         
@@ -36,7 +36,7 @@ class DjangoProductService:
             limit: Maximum number of results (default 10)
             
         Returns:
-            List of ProductInfo objects
+            List of Product model instances
         """
         queryset = Product.objects.filter(stock_quantity__gt=0)
         
@@ -106,7 +106,7 @@ class DjangoProductService:
         # Limit results to avoid overwhelming users
         products = queryset[:limit]
         
-        return [self._convert_to_product_info(p) for p in products]
+        return list(products)
     
     def _normalize_product_type(self, product_type: str) -> str:
         """Normalize product type to handle typos and variations"""
@@ -162,10 +162,10 @@ class DjangoProductService:
         except Product.DoesNotExist:
             return None
     
-    def get_all_products(self, limit: int = 50) -> List[ProductInfo]:
+    def get_all_products(self, limit: int = 50) -> List[Product]:
         """Get all available products"""
         products = Product.objects.filter(stock_quantity__gt=0)[:limit]
-        return [self._convert_to_product_info(p) for p in products]
+        return list(products)
     
     def _convert_to_product_info(self, product: Product) -> ProductInfo:
         """Convert Django Product model to ProductInfo schema"""

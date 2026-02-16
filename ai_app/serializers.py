@@ -2,6 +2,13 @@
 Serializers for AI App API
 """
 from rest_framework import serializers
+from dashboard.models import Product, Images, Category
+
+
+class ImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Images
+        fields = ['id', 'image', 'title']
 
 
 class TextMessageSerializer(serializers.Serializer):
@@ -28,22 +35,69 @@ class VoiceFileSerializer(serializers.Serializer):
     language = serializers.CharField(default='en', max_length=10)
 
 
-class ProductSerializer(serializers.Serializer):
-    """Serializer for product data"""
-    id = serializers.CharField()
-    name = serializers.CharField()
-    category = serializers.CharField()
-    price = serializers.FloatField()
-    sale_price = serializers.FloatField()
-    unit = serializers.CharField()
-    coverage = serializers.FloatField()
-    discount = serializers.FloatField()
-    stock = serializers.IntegerField()
-    description = serializers.CharField()
-    color = serializers.CharField(required=False, allow_null=True)
-    material = serializers.CharField(required=False, allow_null=True)
-    image_url = serializers.CharField(required=False, allow_null=True)
-    specifications = serializers.DictField(required=False)
+class ProductSerializer(serializers.ModelSerializer):
+    """Serializer for product data - uses ModelSerializer to match backend"""
+    # accept multiple image files
+    images = serializers.ListField(
+        child=serializers.ImageField(),
+        write_only=True,
+        required=False
+    )
+
+    # show images in response
+    uploaded_images = ImageSerializer(
+        source='images',
+        many=True,
+        read_only=True
+    )
+
+    main_category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
+    class Meta:
+        model = Product
+        fields = [
+            'id',
+            'product_title',
+            'brand_manufacturer',
+            'item_description',
+            'main_category',
+            'sub_category',
+
+            # uploads
+            'primary_image',
+            'images',
+            'uploaded_images',
+
+            # pricing
+            'regular_price',
+            'sale_price',
+            'product_id',
+            'pack_coverage',
+
+            # dimensions
+            'length',
+            'width',
+            'thickness',
+            'weight',
+            'installation_method',
+            'coverage_per_pack',
+
+            # categorized details
+            'pile_height',
+            'materials',
+            'format',
+            'is_underlay_required',
+            'is_calculate',
+            'available_colors',
+            'pattern_type',
+            'stock_quantity',
+            'return_policy'
+            
+        ]
 
 
 class ChatResponseSerializer(serializers.Serializer):
