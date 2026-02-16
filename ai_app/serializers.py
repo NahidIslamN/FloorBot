@@ -51,11 +51,10 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-    main_category = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all(),
-        required=False,
-        allow_null=True
-    )
+    # Accept either a related model instance or a primitive PK in responses.
+    # Some code paths provide product data as dicts (e.g. from the chatbot),
+    # so use a SerializerMethodField to safely return the PK when needed.
+    main_category = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -98,6 +97,26 @@ class ProductSerializer(serializers.ModelSerializer):
             'return_policy'
             
         ]
+
+    def get_main_category(self, obj):
+        # obj may be a model instance, a dict, or an int PK
+        try:
+            # model instance with attribute
+            if hasattr(obj, 'main_category'):
+                mc = obj.main_category
+                return mc.pk if mc is not None else None
+
+            # dict-like representation
+            if isinstance(obj, dict):
+                return obj.get('main_category')
+
+            # fallback if obj itself is an int
+            if isinstance(obj, int):
+                return obj
+
+        except Exception:
+            return None
+
 
 
 class ChatResponseSerializer(serializers.Serializer):
