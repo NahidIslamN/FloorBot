@@ -20,7 +20,8 @@ class DjangoProductService:
                        min_price: Optional[float] = None,
                        max_price: Optional[float] = None,
                        pattern: Optional[str] = None,
-                       keyword: Optional[str] = None) -> List[ProductInfo]:
+                       keyword: Optional[str] = None,
+                       limit: int = 10) -> List[ProductInfo]:
         """
         Search for products based on criteria
         
@@ -32,22 +33,26 @@ class DjangoProductService:
             max_price: Maximum price
             pattern: Pattern type (e.g., modern, traditional, rustic)
             keyword: General keyword search across all fields
+            limit: Maximum number of results (default 10)
             
         Returns:
             List of ProductInfo objects
         """
         queryset = Product.objects.filter(stock_quantity__gt=0)
         
-        # Enhanced product type matching with more keywords
+        # Enhanced product type matching with more keywords and fuzzy matching
         if product_type:
+            # Normalize and handle typos/variations
+            product_type_normalized = self._normalize_product_type(product_type)
+            
             category_map = {
-                "carpets": ["carpet", "carpets", "rug", "rugs"],
-                "vinyl": ["vinyl", "lvt", "luxury vinyl", "vinyl tile", "vinyl plank"],
-                "laminate": ["laminate", "laminated"],
-                "wood flooring": ["wood", "hardwood", "engineered wood", "timber", "wooden", "oak", "walnut"]
+                "carpets": ["carpet", "carpets", "rug", "rugs", "carpat", "carpets"],
+                "vinyl": ["vinyl", "lvt", "luxury vinyl", "vinyl tile", "vinyl plank", "vynil"],
+                "laminate": ["laminate", "laminated", "laminat"],
+                "wood flooring": ["wood", "hardwood", "engineered wood", "timber", "wooden", "oak", "walnut", "wood floor"]
             }
             
-            category_keywords = category_map.get(product_type.lower(), [product_type.lower()])
+            category_keywords = category_map.get(product_type_normalized, [product_type.lower()])
             
             category_query = Q()
             for keyword_item in category_keywords:
@@ -98,25 +103,54 @@ class DjangoProductService:
                 Q(sale_price__lte=max_price) | Q(regular_price__lte=max_price)
             )
         
-        products = queryset[:10]
+        # Limit results to avoid overwhelming users
+        products = queryset[:limit]
         
         return [self._convert_to_product_info(p) for p in products]
     
+    def _normalize_product_type(self, product_type: str) -> str:
+        """Normalize product type to handle typos and variations"""
+        product_type = product_type.lower().strip()
+        
+        # Common typos and variations
+        typo_map = {
+            "carpat": "carpets",
+            "carpets": "carpets",
+            "carpet": "carpets",
+            "rug": "carpets",
+            "rugs": "carpets",
+            "vynil": "vinyl",
+            "vinly": "vinyl",
+            "vinyl": "vinyl",
+            "laminat": "laminate",
+            "laminated": "laminate",
+            "laminate": "laminate",
+            "wood": "wood flooring",
+            "wooden": "wood flooring",
+            "hardwood": "wood flooring",
+            "timber": "wood flooring",
+        }
+        
+        return typo_map.get(product_type, product_type)
+    
     def _get_color_variations(self, color: str) -> List[str]:
-        """Get color variations and synonyms"""
-        color = color.lower()
+        """Get color variations and synonyms, including common typos"""
+        color = color.lower().strip()
         color_map = {
             "grey": ["grey", "gray"],
             "gray": ["grey", "gray"],
-            "beige": ["beige", "tan", "cream"],
-            "brown": ["brown", "chocolate", "espresso"],
-            "white": ["white", "ivory", "off-white"],
-            "black": ["black", "ebony", "charcoal"],
+            "beige": ["beige", "tan", "cream", "biege"],
+            "brown": ["brown", "chocolate", "espresso", "bronw"],
+            "white": ["white", "ivory", "off-white", "wite"],
+            "black": ["black", "ebony", "charcoal", "blak"],
             "red": ["red", "burgundy", "crimson"],
-            "blue": ["blue", "navy", "azure"],
+            "blue": ["blue", "navy", "azure", "blu"],
             "green": ["green", "olive", "sage"],
             "oak": ["oak", "light oak", "natural oak"],
-            "walnut": ["walnut", "dark walnut"]
+            "walnut": ["walnut", "dark walnut"],
+            "yellow": ["yellow", "gold", "golden"],
+            "orange": ["orange", "terracotta"],
+            "purple": ["purple", "violet", "lavender"],
         }
         return color_map.get(color, [color])
     

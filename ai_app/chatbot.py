@@ -274,16 +274,16 @@ class FloorBotAI:
                     "id": p.id,
                     "name": p.name,
                     "category": p.category,
-                    "price": p.price_per_unit,
-                    "sale_price": p.sale_price if p.sale_price > 0 else p.price_per_unit,
+                    "price": float(p.price_per_unit),
+                    "sale_price": float(p.sale_price if p.sale_price > 0 else p.price_per_unit),
                     "unit": p.unit,
-                    "coverage": p.coverage_per_unit,
-                    "discount": p.discount_percentage,
-                    "stock": p.stock_quantity,
-                    "description": p.description[:200],
-                    "color": p.color,
-                    "material": p.material,
-                    "image_url": p.image_url
+                    "coverage": float(p.coverage_per_unit),
+                    "discount": float(p.discount_percentage),
+                    "stock": int(p.stock_quantity),
+                    "description": p.description[:200] if p.description else "",
+                    "color": p.color or "",
+                    "material": p.material or "",
+                    "image_url": p.image_url or ""
                 }
                 for p in products
             ]
