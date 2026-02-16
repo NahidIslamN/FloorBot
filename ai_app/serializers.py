@@ -55,6 +55,9 @@ class ProductSerializer(serializers.ModelSerializer):
     # Some code paths provide product data as dicts (e.g. from the chatbot),
     # so use a SerializerMethodField to safely return the PK when needed.
     main_category = serializers.SerializerMethodField()
+    
+    # Handle primary_image URL properly
+    primary_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -114,6 +117,16 @@ class ProductSerializer(serializers.ModelSerializer):
             if isinstance(obj, int):
                 return obj
 
+        except Exception:
+            return None
+    
+    def get_primary_image(self, obj):
+        """Get the URL for primary_image"""
+        try:
+            if hasattr(obj, 'primary_image') and obj.primary_image:
+                # Return the URL path (Django will handle the full URL if MEDIA_URL is set)
+                return obj.primary_image.url
+            return None
         except Exception:
             return None
 
