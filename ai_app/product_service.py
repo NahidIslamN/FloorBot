@@ -18,7 +18,9 @@ class DjangoProductService:
                        color: Optional[str] = None,
                        material: Optional[str] = None,
                        min_price: Optional[float] = None,
-                       max_price: Optional[float] = None) -> List[ProductInfo]:
+                       max_price: Optional[float] = None,
+                       pattern: Optional[str] = None,
+                       keyword: Optional[str] = None) -> List[ProductInfo]:
         """
         Search for products based on criteria
         
@@ -28,41 +30,62 @@ class DjangoProductService:
             material: Material type
             min_price: Minimum price
             max_price: Maximum price
+            pattern: Pattern type (e.g., modern, traditional, rustic)
+            keyword: General keyword search across all fields
             
         Returns:
             List of ProductInfo objects
         """
         queryset = Product.objects.filter(stock_quantity__gt=0)
         
+        # Enhanced product type matching with more keywords
         if product_type:
             category_map = {
-                "carpets": ["carpet", "carpets", "rug"],
-                "vinyl": ["vinyl", "lvt", "luxury vinyl"],
-                "laminate": ["laminate"],
-                "wood flooring": ["wood", "hardwood", "engineered wood", "timber"]
+                "carpets": ["carpet", "carpets", "rug", "rugs"],
+                "vinyl": ["vinyl", "lvt", "luxury vinyl", "vinyl tile", "vinyl plank"],
+                "laminate": ["laminate", "laminated"],
+                "wood flooring": ["wood", "hardwood", "engineered wood", "timber", "wooden", "oak", "walnut"]
             }
             
             category_keywords = category_map.get(product_type.lower(), [product_type.lower()])
             
             category_query = Q()
-            for keyword in category_keywords:
-                category_query |= Q(main_category__title__icontains=keyword)
-                category_query |= Q(product_title__icontains=keyword)
-                category_query |= Q(item_description__icontains=keyword)
+            for keyword_item in category_keywords:
+                category_query |= Q(main_category__title__icontains=keyword_item)
+                category_query |= Q(product_title__icontains=keyword_item)
+                category_query |= Q(item_description__icontains=keyword_item)
             
             queryset = queryset.filter(category_query)
         
+        # Enhanced color matching with variations
         if color:
-            queryset = queryset.filter(
-                Q(available_colors__icontains=color) |
-                Q(product_title__icontains=color) |
-                Q(item_description__icontains=color)
-            )
+            color_variations = self._get_color_variations(color)
+            color_query = Q()
+            for color_var in color_variations:
+                color_query |= Q(available_colors__icontains=color_var)
+                color_query |= Q(product_title__icontains=color_var)
+                color_query |= Q(item_description__icontains=color_var)
+            queryset = queryset.filter(color_query)
         
         if material:
             queryset = queryset.filter(
                 Q(materials__icontains=material) |
                 Q(product_title__icontains=material)
+            )
+        
+        if pattern:
+            queryset = queryset.filter(
+                Q(pattern_type__icontains=pattern) |
+                Q(product_title__icontains=pattern) |
+                Q(item_description__icontains=pattern)
+            )
+        
+        if keyword:
+            queryset = queryset.filter(
+                Q(product_title__icontains=keyword) |
+                Q(item_description__icontains=keyword) |
+                Q(materials__icontains=keyword) |
+                Q(available_colors__icontains=keyword)
             )
         
         if min_price is not None:
@@ -78,6 +101,24 @@ class DjangoProductService:
         products = queryset[:10]
         
         return [self._convert_to_product_info(p) for p in products]
+    
+    def _get_color_variations(self, color: str) -> List[str]:
+        """Get color variations and synonyms"""
+        color = color.lower()
+        color_map = {
+            "grey": ["grey", "gray"],
+            "gray": ["grey", "gray"],
+            "beige": ["beige", "tan", "cream"],
+            "brown": ["brown", "chocolate", "espresso"],
+            "white": ["white", "ivory", "off-white"],
+            "black": ["black", "ebony", "charcoal"],
+            "red": ["red", "burgundy", "crimson"],
+            "blue": ["blue", "navy", "azure"],
+            "green": ["green", "olive", "sage"],
+            "oak": ["oak", "light oak", "natural oak"],
+            "walnut": ["walnut", "dark walnut"]
+        }
+        return color_map.get(color, [color])
     
     def get_product_by_id(self, product_id: str) -> Optional[ProductInfo]:
         """Get a specific product by ID"""
@@ -106,6 +147,11 @@ class DjangoProductService:
         if "box" in product.coverage_per_pack.lower() or "pack" in product.coverage_per_pack.lower():
             unit = "box"
         
+        # Get image URL
+        image_url = None
+        if product.primary_image:
+            image_url = product.primary_image.url if hasattr(product.primary_image, 'url') else str(product.primary_image)
+        
         return ProductInfo(
             id=product.product_id,
             name=product.product_title,
@@ -119,6 +165,7 @@ class DjangoProductService:
             stock_quantity=product.stock_quantity or 0,
             discount_percentage=round(discount_pct, 2),
             description=product.item_description or "",
+            image_url=image_url,
             specifications={
                 "length": product.length,
                 "width": product.width,

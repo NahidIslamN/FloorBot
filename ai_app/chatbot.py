@@ -34,25 +34,34 @@ class FloorBotAI:
                 "type": "function",
                 "function": {
                     "name": "search_products",
-                    "description": "Search for flooring products based on customer requirements",
+                    "description": "Search for flooring products based on customer requirements. Use this whenever customers ask about products or mention a product category.",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "product_type": {
                                 "type": "string",
-                                "description": "Type of flooring (carpets, vinyl, laminate, wood flooring)"
+                                "description": "Type of flooring (carpets, vinyl, laminate, wood flooring)",
+                                "enum": ["carpets", "vinyl", "laminate", "wood flooring"]
                             },
                             "color": {
                                 "type": "string",
-                                "description": "Preferred color"
+                                "description": "Preferred color (e.g., grey, beige, brown, oak, walnut)"
                             },
                             "material": {
                                 "type": "string",
-                                "description": "Material type"
+                                "description": "Material type (e.g., wool, nylon, engineered)"
+                            },
+                            "pattern": {
+                                "type": "string",
+                                "description": "Style or pattern (e.g., modern, traditional, rustic, herringbone)"
                             },
                             "max_price": {
                                 "type": "number",
                                 "description": "Maximum price per unit"
+                            },
+                            "keyword": {
+                                "type": "string",
+                                "description": "General keyword to search across all product fields"
                             }
                         }
                     }
@@ -136,7 +145,7 @@ class FloorBotAI:
             message: User message
             
         Returns:
-            Response dictionary with AI reply
+            Response dictionary with AI reply and products if found
         """
         session = self.session_manager.get_session(session_id)
         
@@ -148,6 +157,9 @@ class FloorBotAI:
             }
         
         session.add_message(MessageRole.USER, message)
+        
+        # Track products found during this conversation turn
+        found_products = []
         
         try:
             messages = session.get_openai_messages(limit=AIConfig.MAX_CONVERSATION_HISTORY)
@@ -169,7 +181,11 @@ class FloorBotAI:
                     function_name = tool_call.function.name
                     function_args = json.loads(tool_call.function.arguments)
                     
-                    function_response = self._execute_function(function_name, function_args)
+                    function_response = self._execute_function(function_name, function_args, session)
+                    
+                    # If products were searched, track them
+                    if function_name == "search_products" and "products" in function_response:
+                        found_products = function_response["products"]
                     
                     function_responses.append({
                         "tool_call_id": tool_call.id,
@@ -207,11 +223,18 @@ class FloorBotAI:
             session.add_message(MessageRole.ASSISTANT, final_content)
             self.session_manager.update_session(session)
             
-            return {
+            # Build response with products if any were found
+            response_data = {
                 "session_id": session_id,
                 "response": final_content,
                 "success": True
             }
+            
+            if found_products:
+                response_data["products"] = found_products
+                response_data["product_count"] = len(found_products)
+            
+            return response_data
         
         except Exception as e:
             return {
@@ -221,7 +244,7 @@ class FloorBotAI:
                 "error": str(e)
             }
     
-    def _execute_function(self, function_name: str, arguments: Dict) -> Dict:
+    def _execute_function(self, function_name: str, arguments: Dict, session: Any = None) -> Dict:
         """Execute a function call from GPT"""
         
         if function_name == "search_products":
@@ -229,24 +252,44 @@ class FloorBotAI:
                 product_type=arguments.get("product_type"),
                 color=arguments.get("color"),
                 material=arguments.get("material"),
-                max_price=arguments.get("max_price")
+                pattern=arguments.get("pattern"),
+                max_price=arguments.get("max_price"),
+                keyword=arguments.get("keyword")
             )
             
+            # Store search context in session for follow-up filtering
+            if session:
+                session.context["last_search_filters"] = {
+                    "product_type": arguments.get("product_type"),
+                    "color": arguments.get("color"),
+                    "material": arguments.get("material"),
+                    "pattern": arguments.get("pattern"),
+                    "max_price": arguments.get("max_price"),
+                    "keyword": arguments.get("keyword")
+                }
+                session.context["last_products"] = [p.id for p in products]
+            
+            product_list = [
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "category": p.category,
+                    "price": p.price_per_unit,
+                    "sale_price": p.sale_price if p.sale_price > 0 else p.price_per_unit,
+                    "unit": p.unit,
+                    "coverage": p.coverage_per_unit,
+                    "discount": p.discount_percentage,
+                    "stock": p.stock_quantity,
+                    "description": p.description[:200],
+                    "color": p.color,
+                    "material": p.material,
+                    "image_url": p.image_url
+                }
+                for p in products
+            ]
+            
             return {
-                "products": [
-                    {
-                        "id": p.id,
-                        "name": p.name,
-                        "category": p.category,
-                        "price": p.sale_price if p.sale_price > 0 else p.price_per_unit,
-                        "unit": p.unit,
-                        "coverage": p.coverage_per_unit,
-                        "discount": p.discount_percentage,
-                        "stock": p.stock_quantity,
-                        "description": p.description[:200]
-                    }
-                    for p in products
-                ],
+                "products": product_list,
                 "count": len(products)
             }
         

@@ -82,6 +82,7 @@ class ProductInfo:
     discount_percentage: float
     description: str
     specifications: Dict[str, Any]
+    image_url: Optional[str] = None
     
     def get_display_info(self) -> Dict[str, Any]:
         """Get formatted product info for display"""
@@ -97,7 +98,8 @@ class ProductInfo:
             "coverage": f"{self.coverage_per_unit} m²" if self.unit == "box" else "1 m²",
             "discount": f"{self.discount_percentage}%" if self.discount_percentage > 0 else "No discount",
             "stock": f"{self.stock_quantity} in stock",
-            "description": self.description
+            "description": self.description,
+            "image_url": self.image_url
         }
 
 

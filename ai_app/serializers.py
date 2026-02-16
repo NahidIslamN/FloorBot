@@ -28,6 +28,24 @@ class VoiceFileSerializer(serializers.Serializer):
     language = serializers.CharField(default='en', max_length=10)
 
 
+class ProductSerializer(serializers.Serializer):
+    """Serializer for product data"""
+    id = serializers.CharField()
+    name = serializers.CharField()
+    category = serializers.CharField()
+    price = serializers.FloatField()
+    sale_price = serializers.FloatField()
+    unit = serializers.CharField()
+    coverage = serializers.FloatField()
+    discount = serializers.FloatField()
+    stock = serializers.IntegerField()
+    description = serializers.CharField()
+    color = serializers.CharField(required=False, allow_null=True)
+    material = serializers.CharField(required=False, allow_null=True)
+    image_url = serializers.CharField(required=False, allow_null=True)
+    specifications = serializers.DictField(required=False)
+
+
 class ChatResponseSerializer(serializers.Serializer):
     """Serializer for chat response output"""
     session_id = serializers.CharField()
@@ -35,6 +53,8 @@ class ChatResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     error = serializers.CharField(required=False, allow_null=True)
     transcribed_text = serializers.CharField(required=False, allow_null=True)
+    products = ProductSerializer(many=True, required=False, allow_null=True)
+    product_count = serializers.IntegerField(required=False, allow_null=True)
 
 
 class SessionSerializer(serializers.Serializer):
