@@ -28,26 +28,38 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MessagePreviewSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source='sender.first_name')
+    is_readed = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ['id', 'text', 'sender_name', 'created_at']
+        fields = ['id', 'text', 'sender_name', 'created_at', 'is_readed']
+
+    def get_is_readed(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user or request.user.is_anonymous:
+            return False
+        # A message is considered read for the requesting user if they are in seen_users
+        # or if they are the sender.
+        if obj.sender_id == request.user.id:
+            return True
+        return obj.seen_users.filter(id=request.user.id).exists()
 
 
 class ChatListSerializer(serializers.ModelSerializer):
     participants = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
     last_message_time = serializers.SerializerMethodField()
+    unread_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Chat
         fields = [
             'id',
-            'name',
             'participants',
             'last_message',
             'last_message_time',
-            'updated_at'
+            'updated_at',
+            'unread_count'
         ]
 
     def get_participants(self, obj):
@@ -58,7 +70,7 @@ class ChatListSerializer(serializers.ModelSerializer):
     def get_last_message(self, obj):
         last_msg = obj.messages.order_by('-created_at').first()
         if last_msg:
-            return MessagePreviewSerializer(last_msg).data
+            return MessagePreviewSerializer(last_msg, context=self.context).data
         return None
 
     def get_last_message_time(self, obj):
