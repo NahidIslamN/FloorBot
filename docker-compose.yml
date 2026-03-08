@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
 
   web:
@@ -13,15 +15,16 @@ services:
     environment:
       - DJANGO_SETTINGS_MODULE=Floor_Bot.settings
     depends_on:
-      redis:
-        condition: service_healthy
+      - redis
     restart: always
+    networks:
+      - floor_network
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     restart: always
+    networks:
+      - floor_network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 3s
@@ -37,8 +40,12 @@ services:
     env_file:
       - .env
     depends_on:
-      redis:
-        condition: service_healthy
-      web:
-        condition: service_started
+      - redis
+      - web
     restart: always
+    networks:
+      - floor_network
+
+networks:
+  floor_network:
+    driver: bridge

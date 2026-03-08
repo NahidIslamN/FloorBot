@@ -272,6 +272,7 @@ def generate_tokens_for_user(user):
         
     }
 
+
 class GoogleLoginView(APIView):
     def post(self, request):
         token = request.data.get("id_token")
