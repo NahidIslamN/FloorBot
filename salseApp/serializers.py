@@ -51,6 +51,7 @@ class ProductSerializerPublic(serializers.ModelSerializer):
             # pricing
             'regular_price',
             'sale_price',
+            'tax_price',
             'product_id',
             'pack_coverage',
 
