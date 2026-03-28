@@ -14,8 +14,6 @@ urlpatterns = [
     path('orders/', User_Ordedrs.as_view(), name='orders'),
     path('delevard-orders/', User_Complete_Ordedrs.as_view(), name="deliverd_orders"),
 
-
-
     # accout url
 
     path('profile-data/', Profile_Data.as_view(), name='profile-data!')
