@@ -1,0 +1,517 @@
+
+class ProductCSVUpload(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        
+        if 'file' not in request.FILES:
+            return Response({
+                "success": False,
+                "message": "No file provided. Please upload a CSV file."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        csv_file = request.FILES['file']
+        
+        # Check file extension
+        if not csv_file.name.endswith('.csv'):
+            return Response({
+                "success": False,
+                "message": "Invalid file format. Please upload a CSV file."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Read and decode the file
+            decoded_file = csv_file.read().decode('utf-8')
+            csv_reader = csv.DictReader(io.StringIO(decoded_file))
+            
+            if csv_reader.fieldnames is None:
+                return Response({
+                    "success": False,
+                    "message": "CSV file is empty."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            created_products = []
+            failed_rows = []
+            row_number = 2  # Start from 2 since row 1 is header
+            
+            for row in csv_reader:
+                try:
+                    # Get or create category
+                    category_name = row.get('main_category', '').strip()
+                    if not category_name:
+                        failed_rows.append({
+                            "row": row_number,
+                            "error": "main_category is required"
+                        })
+                        row_number += 1
+                        continue
+                    
+                    category, _ = Category.objects.get_or_create(
+                        title=category_name,
+                        defaults={'image': 'placeholder.jpg'}
+                    )
+                    
+                    # Prepare product data
+                    product_data = {
+                        'product_title': row.get('product_title', '').strip(),
+                        'brand_manufacturer': row.get('brand_manufacturer', '').strip(),
+                        'item_description': row.get('item_description', '').strip(),
+                        'main_category': category.id,
+                        'sub_category': row.get('sub_category', '').strip(),
+                        'tags': row.get('tags', '').strip(),
+                        'pack_coverage': row.get('pack_coverage', '').strip(),
+                        'length': row.get('length', '').strip(),
+                        'width': row.get('width', '').strip(),
+                        'thickness': row.get('thickness', '').strip(),
+                        'weight': row.get('weight', '').strip(),
+                        'installation_method': row.get('installation_method', '').strip(),
+                        'coverage_per_pack': row.get('coverage_per_pack', '').strip(),
+                        'pile_height': row.get('pile_height', '').strip() or None,
+                        'materials': row.get('materials', '').strip(),
+                        'format': row.get('format', '').strip() or None,
+                        'is_underlay_required': row.get('is_underlay_required', 'False').lower() in ['true', '1', 'yes'],
+                        'available_colors': row.get('available_colors', '').strip(),
+                        'pattern_type': row.get('pattern_type', '').strip() or None,
+                        'stock_quantity': int(row.get('stock_quantity', 0)) if row.get('stock_quantity', '').strip() else 0,
+                        'is_calculate': row.get('is_calculate', 'False').lower() in ['true', '1', 'yes'],
+                        'return_policy': row.get('return_policy', '30-day return policy').strip(),
+                        'total_salses': int(row.get('total_salses', 0)) if row.get('total_salses', '').strip() else 0,
+                        'product_id': row.get('product_id', '').strip(),
+                        'regular_price': Decimal(row.get('regular_price', '0')) if row.get('regular_price', '').strip() else Decimal('0'),
+                        'sale_price': Decimal(row.get('sale_price', '0')) if row.get('sale_price', '').strip() else Decimal('0'),
+                        'tax_price': Decimal(row.get('tax_price', '0')) if row.get('tax_price', '').strip() else Decimal('0'),
+                    }
+                    
+                    # Validate required fields
+                    if not product_data['product_title']:
+                        failed_rows.append({"row": row_number, "error": "product_title is required"})
+                        row_number += 1
+                        continue
+                    
+                    if not product_data['product_id']:
+                        failed_rows.append({"row": row_number, "error": "product_id is required"})
+                        row_number += 1
+                        continue
+                    
+                    # Check if product already exists
+                    if Product.objects.filter(product_id=product_data['product_id']).exists():
+                        failed_rows.append({
+                            "row": row_number,
+                            "error": f"Product with ID {product_data['product_id']} already exists"
+                        })
+                        row_number += 1
+                        continue
+                    
+                    # Create product without image (image field is optional for now)
+                    product_data.pop('primary_image', None)
+                    product = Product.objects.create(
+                        primary_image='placeholder.jpg',  # Use placeholder since we can't upload images from CSV
+                        **product_data
+                    )
+                    
+                    created_products.append({
+                        "product_id": product.product_id,
+                        "product_title": product.product_title
+                    })
+                    
+                except ValueError as e:
+                    failed_rows.append({
+                        "row": row_number,
+                        "error": f"Data type error: {str(e)}"
+                    })
+                except Exception as e:
+                    failed_rows.append({
+                        "row": row_number,
+                        "error": str(e)
+                    })
+                
+                row_number += 1
+            
+            response_data = {
+                "success": len(failed_rows) == 0,
+                "message": f"Processed {len(created_products) + len(failed_rows)} rows",
+                "created_count": len(created_products),
+                "failed_count": len(failed_rows),
+                "created_products": created_products
+            }
+            
+            if failed_rows:
+                response_data["failed_rows"] = failed_rows
+            
+            return Response(
+                response_data,
+                status=status.HTTP_201_CREATED if len(created_products) > 0 else status.HTTP_400_BAD_REQUEST
+            )
+        
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"Error processing file: {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+next ################################
+
+views.py
+
+######################## CSV Upload section ###################################
+class ProductCSVUpload(APIView):
+    permission_classes = [IsAdminUser]
+    def post(self, request):
+                
+        if 'file' not in request.FILES:
+            return Response({
+                "success": False,
+                "message": "No file provided. Please upload a CSV file."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        csv_file = request.FILES['file']
+       
+        if not csv_file.name.endswith('.csv'):
+            return Response({
+                "success": False,
+                "message": "Invalid file format. Please upload a CSV file."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Read CSV file content into memory
+            csv_content = csv_file.read().decode('utf-8')
+            
+            admin_email = request.user.email if hasattr(request.user, 'email') else None
+            admin_name = request.user.full_name if hasattr(request.user, 'full_name') else request.user.username
+            
+            if not admin_email:
+                return Response({
+                    "success": False,
+                    "message": "Admin email not found. Unable to send notifications."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validate CSV structure
+            try:
+                csv_reader = csv.DictReader(io.StringIO(csv_content))
+                if csv_reader.fieldnames is None:
+                    raise ValueError("CSV file is empty")
+                
+                next(csv_reader)
+            except StopIteration:
+                return Response({
+                    "success": False,
+                    "message": "CSV file only contains header row. Please add product data."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({
+                    "success": False,
+                    "message": f"Invalid CSV file: {str(e)}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Queue the background task with CSV content (not file path)
+            task = process_csv_upload.delay(
+                csv_content=csv_content,
+                admin_email=admin_email,
+                admin_name=admin_name
+            )
+            
+            return Response({
+                "success": True,
+                "message": "CSV file received! Processing in background. You will receive an email notification when complete.",
+                "status": "processing"
+            }, status=status.HTTP_202_ACCEPTED)
+        
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"Error processing file: {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+#celery
+
+from celery import shared_task
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from .models import Product, Category
+from decimal import Decimal, InvalidOperation
+import csv
+import io
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@shared_task(bind=True, max_retries=3)
+def process_csv_upload(self, csv_content, admin_email, admin_name):
+    """
+    Celery task to process CSV file content and create products.
+    
+    Args:
+        csv_content (str): CSV file content as string (not file path)
+        admin_email (str): Email of admin to notify
+        admin_name (str): Name of admin for greeting
+    """
+    logger.info(f"Starting CSV upload process for admin: {admin_email}")
+    
+    created_products = []
+    failed_rows = []
+    row_number = 2 
+    error_message = None
+    
+    try:
+        # Parse CSV from string content using StringIO
+        csv_reader = csv.DictReader(io.StringIO(csv_content))
+        
+        if csv_reader.fieldnames is None:
+            raise ValueError("CSV file is empty or invalid")
+        
+        for row in csv_reader:
+            try:
+                category_name = row.get('main_category', '').strip()
+                if not category_name:
+                    failed_rows.append({
+                        "row": row_number,
+                        "error": "main_category is required"
+                    })
+                    row_number += 1
+                    continue
+                
+                category, _ = Category.objects.get_or_create(
+                    title=category_name,
+                    defaults={'image': 'placeholder.jpg'}
+                )
+                
+                product_data = {
+                    'product_title': row.get('product_title', '').strip(),
+                    'brand_manufacturer': row.get('brand_manufacturer', '').strip(),
+                    'item_description': row.get('item_description', '').strip(),
+                    'main_category': category.id,
+                    'sub_category': row.get('sub_category', '').strip(),
+                    'tags': row.get('tags', '').strip(),
+                    'pack_coverage': row.get('pack_coverage', '').strip(),
+                    'length': row.get('length', '').strip(),
+                    'width': row.get('width', '').strip(),
+                    'thickness': row.get('thickness', '').strip(),
+                    'weight': row.get('weight', '').strip(),
+                    'installation_method': row.get('installation_method', '').strip(),
+                    'coverage_per_pack': row.get('coverage_per_pack', '').strip(),
+                    'pile_height': row.get('pile_height', '').strip() or None,
+                    'materials': row.get('materials', '').strip(),
+                    'format': row.get('format', '').strip() or None,
+                    'is_underlay_required': row.get('is_underlay_required', 'False').lower() in ['true', '1', 'yes'],
+                    'available_colors': row.get('available_colors', '').strip(),
+                    'pattern_type': row.get('pattern_type', '').strip() or None,
+                    'stock_quantity': int(row.get('stock_quantity', 0)) if row.get('stock_quantity', '').strip() else 0,
+                    'is_calculate': row.get('is_calculate', 'False').lower() in ['true', '1', 'yes'],
+                    'return_policy': row.get('return_policy', '30-day return policy').strip(),
+                    'total_salses': int(row.get('total_salses', 0)) if row.get('total_salses', '').strip() else 0,
+                    'product_id': row.get('product_id', '').strip(),
+                    'regular_price': Decimal(row.get('regular_price', '0')) if row.get('regular_price', '').strip() else Decimal('0'),
+                    'sale_price': Decimal(row.get('sale_price', '0')) if row.get('sale_price', '').strip() else Decimal('0'),
+                    'tax_price': Decimal(row.get('tax_price', '0')) if row.get('tax_price', '').strip() else Decimal('0'),
+                }
+                
+                if not product_data['product_title']:
+                    failed_rows.append({"row": row_number, "error": "product_title is required"})
+                    row_number += 1
+                    continue
+                
+                if not product_data['product_id']:
+                    failed_rows.append({"row": row_number, "error": "product_id is required"})
+                    row_number += 1
+                    continue
+                
+                if Product.objects.filter(product_id=product_data['product_id']).exists():
+                    failed_rows.append({
+                        "row": row_number,
+                        "error": f"Product with ID {product_data['product_id']} already exists"
+                    })
+                    row_number += 1
+                    continue
+                
+                product_data.pop('primary_image', None)
+                product = Product.objects.create(
+                    primary_image='placeholder.jpg',
+                    **product_data
+                )
+                
+                created_products.append({
+                    "product_id": product.product_id,
+                    "product_title": product.product_title,
+                    "price": str(product.sale_price)
+                })
+                
+                logger.info(f"Product created: {product.product_title} (ID: {product.product_id})")
+                
+            except ValueError as e:
+                failed_rows.append({
+                    "row": row_number,
+                    "error": f"Data type error: {str(e)}"
+                })
+            except Exception as e:
+                failed_rows.append({
+                    "row": row_number,
+                    "error": str(e)
+                })
+            
+            row_number += 1
+        
+        send_csv_notification_email.delay(
+            admin_email=admin_email,
+            admin_name=admin_name,
+            created_count=len(created_products),
+            failed_count=len(failed_rows),
+            created_products=created_products,
+            failed_rows=failed_rows,
+            success=len(failed_rows) == 0
+        )
+        
+        logger.info(f"CSV upload completed: {len(created_products)} created, {len(failed_rows)} failed")
+        
+        return {
+            "status": "completed",
+            "created_count": len(created_products),
+            "failed_count": len(failed_rows),
+            "total_rows": len(created_products) + len(failed_rows)
+        }
+    
+    except Exception as e:
+        error_message = str(e)
+        logger.error(f"Critical error in CSV processing: {error_message}")
+        
+        send_csv_notification_email.delay(
+            admin_email=admin_email,
+            admin_name=admin_name,
+            created_count=0,
+            failed_count=0,
+            created_products=[],
+            failed_rows=[],
+            success=False,
+            error=error_message
+        )
+        
+        logger.error(f"Task failed with error: {error_message}")
+        raise self.retry(exc=e, countdown=60)
+
+
+@shared_task
+def send_csv_notification_email(admin_email, admin_name, created_count, failed_count, 
+                                 created_products, failed_rows, success, error=None):
+    """
+    Celery task to send email notification about CSV upload results.
+    """
+    
+    if success and error is None:
+        subject = "✓ CSV Upload Completed Successfully"
+        
+        # Build HTML content for created products
+        products_html = ""
+        if created_products:
+            products_html = "<ul>"
+            for product in created_products[:10]:  # Show first 10
+                products_html += f"""
+                <li style="margin-bottom: 8px;">
+                    <strong>{product['product_title']}</strong> (ID: {product['product_id']}) - ${product['price']}
+                </li>
+                """
+            if len(created_products) > 10:
+                products_html += f"<li><em>...and {len(created_products) - 10} more products</em></li>"
+            products_html += "</ul>"
+        
+        html_message = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+                    <h2 style="color: #28a745;">✓ CSV Upload Completed</h2>
+                    
+                    <p>Hello {admin_name},</p>
+                    
+                    <p>Your CSV file has been successfully processed. Here's a summary:</p>
+                    
+                    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Total Rows Processed:</strong> {created_count + failed_count}</p>
+                        <p style="margin: 5px 0; color: #28a745;"><strong>✓ Products Created:</strong> {created_count}</p>
+                        <p style="margin: 5px 0; color: #dc3545;"><strong>✗ Failed Rows:</strong> {failed_count}</p>
+                    </div>
+                    
+                    <h3>Created Products (First 10):</h3>
+                    {products_html if products_html else "<p>No products created.</p>"}
+                    
+                    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px;">
+                        This is an automated notification from Flor_Bot. Please do not reply to this email.
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+        
+    else:
+        # Failure case
+        subject = "✗ CSV Upload Failed"
+        
+        error_details = error or "Unknown error occurred during processing"
+        
+        # Build HTML for failed rows if available
+        failed_rows_html = ""
+        if failed_rows:
+            failed_rows_html = "<ul>"
+            for row in failed_rows[:15]:  # Show first 15 failed rows
+                failed_rows_html += f"""
+                <li style="margin-bottom: 8px;">
+                    <strong>Row {row['row']}:</strong> {row['error']}
+                </li>
+                """
+            if len(failed_rows) > 15:
+                failed_rows_html += f"<li><em>...and {len(failed_rows) - 15} more errors</em></li>"
+            failed_rows_html += "</ul>"
+        
+        html_message = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+                    <h2 style="color: #dc3545;">✗ CSV Upload Failed</h2>
+                    
+                    <p>Hello {admin_name},</p>
+                    
+                    <p>Your CSV file upload encountered errors during processing:</p>
+                    
+                    <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 20px 0; color: #721c24;">
+                        <strong>Error:</strong> {error_details}
+                    </div>
+                    
+                    {f'<h3>Failed Rows (First 15):</h3>{failed_rows_html}' if failed_rows_html else ''}
+                    
+                    <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p><strong>What to do next:</strong></p>
+                        <ul style="margin: 10px 0;">
+                            <li>Review the errors listed above</li>
+                            <li>Fix the issues in your CSV file</li>
+                            <li>Try uploading again</li>
+                        </ul>
+                    </div>
+                    
+                    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 12px;">
+                        This is an automated notification from Flor_Bot. Please do not reply to this email.
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+    
+    plain_message = strip_tags(html_message)
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email='nahidcse600795@gmail.com',
+            recipient_list=[admin_email],
+            html_message=html_message,
+            fail_silently=False
+        )
+        logger.info(f"Email notification sent to {admin_email}")
+    except Exception as e:
+        logger.error(f"Error sending email to {admin_email}: {str(e)}")

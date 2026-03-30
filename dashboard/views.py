@@ -9,6 +9,12 @@ from Floor_Bot import settings
 stripe.api_key = settings.STRIPE_TEST_SECRET_KEY
 from .models import OrderTable
 from Floor_Bot.pagination import CustomPagination
+import csv
+import io
+from decimal import Decimal
+import os
+import tempfile
+from .tasks import process_csv_upload
 
 
 
@@ -345,6 +351,81 @@ class StripeWalletBalance(APIView):
         },
         status=status.HTTP_200_OK
     )
+
+
+
+
+
+
+
+######################## CSV Upload section ###################################
+class ProductCSVUpload(APIView):
+    permission_classes = [IsAdminUser]
+    def post(self, request):
+                
+        if 'file' not in request.FILES:
+            return Response({
+                "success": False,
+                "message": "No file provided. Please upload a CSV file."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        csv_file = request.FILES['file']
+       
+        if not csv_file.name.endswith('.csv'):
+            return Response({
+                "success": False,
+                "message": "Invalid file format. Please upload a CSV file."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Read CSV file content into memory
+            csv_content = csv_file.read().decode('utf-8')
+            
+            admin_email = request.user.email if hasattr(request.user, 'email') else None
+            admin_name = request.user.full_name if hasattr(request.user, 'full_name') else request.user.username
+            
+            if not admin_email:
+                return Response({
+                    "success": False,
+                    "message": "Admin email not found. Unable to send notifications."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validate CSV structure
+            try:
+                csv_reader = csv.DictReader(io.StringIO(csv_content))
+                if csv_reader.fieldnames is None:
+                    raise ValueError("CSV file is empty")
+                
+                next(csv_reader)
+            except StopIteration:
+                return Response({
+                    "success": False,
+                    "message": "CSV file only contains header row. Please add product data."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({
+                    "success": False,
+                    "message": f"Invalid CSV file: {str(e)}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Queue the background task with CSV content (not file path)
+            task = process_csv_upload.delay(
+                csv_content=csv_content,
+                admin_email=admin_email,
+                admin_name=admin_name
+            )
+            
+            return Response({
+                "success": True,
+                "message": "CSV file received! Processing in background. You will receive an email notification when complete.",
+                "status": "processing"
+            }, status=status.HTTP_202_ACCEPTED)
+        
+        except Exception as e:
+            return Response({
+                "success": False,
+                "message": f"Error processing file: {str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 
