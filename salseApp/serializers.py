@@ -1,7 +1,7 @@
 
 
 from rest_framework import serializers
-from dashboard.models import Product, Images, Category, OrderTable
+from dashboard.models import Product, Images, Category, OrderTable, OrderItem
 
 
 class ImageSerializer(serializers.ModelSerializer):
@@ -218,14 +218,13 @@ class ProductSerializerDetailsOrder(serializers.ModelSerializer):
 
 
 class OrderSerializers(serializers.ModelSerializer):
-    product = ProductSerializerDetailsOrder()
+    items = serializers.SerializerMethodField()
     
     class Meta:
         model = OrderTable
         fields = [
             'id',
-            'product',
-            'quantity',
+            'items',
             'order_total',
             'status',
 
@@ -252,6 +251,29 @@ class OrderSerializers(serializers.ModelSerializer):
         read_only_fields = [
             'order_total',
         ]
+
+    def get_items(self, obj):
+        items = obj.items.all()
+        return OrderItemSerializer(items, many=True).data
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product = ProductSerializerDetailsOrder(read_only=True)
+    total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            'id',
+            'product',
+            'quantity',
+            'price',
+            'tax',
+            'total',
+        ]
+
+    def get_total(self, obj):
+        return obj.get_total()
 
     
 

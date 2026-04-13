@@ -72,6 +72,10 @@ class Product(models.Model):
 
 
 
+
+
+
+
 class OrderTable(models.Model):
     ORDER_STATUS = (
         ('placed', "Placed"),
@@ -80,9 +84,6 @@ class OrderTable(models.Model):
         ('cancelled', "Cancelled"),
     )
     user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    products = models.ManyToManyField(Product, related_name='product_lists')
-    quantity = models.IntegerField()
     delivery_fee = models.DecimalField(default=0.00, decimal_places=2, max_digits=9)
     delivery_date = models.DateField(null=True, blank=True)
     tax_fee = models.DecimalField(default=0.00, decimal_places=2, max_digits=9)
@@ -114,26 +115,22 @@ class OrderTable(models.Model):
     is_feedbacked = models.BooleanField(default=False)
 
 
-    def calculate_order_total(self):
-        """Calculate total based on sale or regular price"""
-        # Base price
-        base_price = self.product.sale_price if self.product.sale_price > 0 else self.product.regular_price
 
-        # Safely handle delivery_fee and tax_fee
-        tax_fee = self.tax_fee or Decimal('0.00')
-
-        total_price = Decimal(base_price)
-
-        return total_price * self.quantity
-
-
-
-
-    def save(self, *args, **kwargs):
-        self.order_total = self.calculate_order_total()
-        super().save(*args, **kwargs)
-    
     class Meta:
         ordering = ['-created_at']
+    
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(OrderTable, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+    
+    price = models.DecimalField(max_digits=10, decimal_places=2)  # store price at order time
+    tax = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def get_total(self):
+        return (self.price + self.tax) * self.quantity
+
 
     

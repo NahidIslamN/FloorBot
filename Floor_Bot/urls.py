@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from dashboard.views import HomePage
-from salseApp.views import StripeWebhookDebugAPIView
+from salseApp.views import StripeWebhookDebugAPIView, StripeWebhookDebugAPIViewV2
 
 urlpatterns = [
     path('', HomePage.as_view(), name="homepage"),
@@ -29,7 +29,8 @@ urlpatterns = [
     path('api/v1/admins/', include('dashboard.urls')),
     path('api/v1/users/', include('salseApp.urls')),
     path('api/v1/ai/', include('ai_app.urls')),
-    path('api/v1/stripe-webhock-after-payment-successs/', StripeWebhookDebugAPIView.as_view(), name='payment-success'),
+    # path('api/v1/stripe-webhock-after-payment-successs/', StripeWebhookDebugAPIView.as_view(), name='payment-success'),
+    path('api/v2/stripe-webhock-after-payment-successs/', StripeWebhookDebugAPIViewV2.as_view(), name='payment-success'),
     path('api/v1/ai-fetures/', include('ai_app.urls')),
 
 ]
