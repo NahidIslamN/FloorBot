@@ -16,6 +16,9 @@ urlpatterns = [
 
     # accout url
 
-    path('profile-data/', Profile_Data.as_view(), name='profile-data!')
+    path('profile-data/', Profile_Data.as_view(), name='profile-data!'),
+
+    # create orders
+    path('orders-create/', CreateOrdersV2.as_view(), name='order-creates'),
 
 ]

@@ -275,6 +275,32 @@ class OrderCreateSerializer(serializers.Serializer):
 
 
 
+class OrderCreateSerializerV2(serializers.Serializer):
+    product_list = serializers.ListField(
+        child=serializers.ListField(
+            child=serializers.IntegerField(),
+            min_length=2,
+            max_length=2
+        ),
+        required=True
+    )
+    # Address
+    country_or_region = serializers.CharField(max_length=250)
+    address_line_i = serializers.CharField(max_length=250)
+    address_line_ii = serializers.CharField(
+        max_length=250,
+        required=False,
+        allow_blank=True
+    )
+    suburb = serializers.CharField(max_length=250)
+    city = serializers.CharField(max_length=250)
+    postal_code = serializers.CharField(max_length=50)
+    state = serializers.CharField(max_length=250)
+
+
+
+
+
 
 
 

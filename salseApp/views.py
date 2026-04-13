@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer, ProductSearchSuggestion, OrderFeedBackSerializer, OrderDelivaryStatusUpdateSerializer
+from .serializers import ProductSerializerPublic, CategorisSerializers, OrderSerializers, OrderCreateSerializer,OrderCreateSerializerV2, ProductSearchSuggestion, OrderFeedBackSerializer, OrderDelivaryStatusUpdateSerializer
 from dashboard.models import Product, Category, OrderTable, CustomUser
 from Floor_Bot.pagination import CustomPagination
 from Floor_Bot import settings
@@ -505,3 +505,117 @@ class StripeWebhookDebugAPIView(APIView):
 
 
         return Response({"status": "ok"}, status=status.HTTP_200_OK)
+
+
+from rest_framework import serializers
+
+
+#order related new work
+
+class CreateOrdersV2(APIView):
+    def get (self, request):
+        pass
+
+    def post(self, request):
+        data = request.data
+        user = request.user
+
+        serializer = OrderCreateSerializerV2(data=data)
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": f"{str(next(iter(serializer.errors.values()))[0])}",
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            product_data = serializer.validated_data.get('product_list')  # [[1,2],[3,4]]
+
+            # Extract product IDs
+            product_ids = [item[0] for item in product_data]
+
+            products = Product.objects.filter(id__in=product_ids)
+            product_map = {p.id: p for p in products}
+
+            total_amount = 0
+            product_names = []
+            metadata_products = []
+
+            # ✅ Calculate total properly
+            for item in product_data:
+                product_id, qty = item
+
+                product = product_map.get(product_id)
+                if not product:
+                    raise serializers.ValidationError(f"Invalid product id: {product_id}")
+
+                price = product.sale_price if product.sale_price > 0 else product.regular_price
+
+                total_amount += (price + product.tax_price) * qty
+
+                product_names.append(product.product_title)
+                metadata_products.append({
+                    "product_id": product_id,
+                    "qty": qty
+                })
+
+            # Address
+            country_or_region = serializer.validated_data.get('country_or_region')
+            address_line_i = serializer.validated_data.get('address_line_i')
+            address_line_ii = serializer.validated_data.get('address_line_ii')
+            suburb = serializer.validated_data.get('suburb')
+            city = serializer.validated_data.get('city')
+            postal_code = serializer.validated_data.get('postal_code')
+            state = serializer.validated_data.get('state')
+
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "message": "validation errors!",
+                    "errors": str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ✅ Use combined product names
+        product_name = ", ".join(product_names)
+
+        # ✅ Stripe PaymentIntent
+        intent = stripe.PaymentIntent.create(
+            amount=int(total_amount * 100),
+            currency="gbp",
+            description=f"Payment for {product_name}",
+            metadata={
+                "user_id": user.id,
+                "products": str(metadata_products),
+
+                # address
+                "country_or_region": country_or_region,
+                "address_line_i": address_line_i,
+                "address_line_ii": address_line_ii,
+                "suburb": suburb,
+                "city": city,
+                "postal_code": postal_code,
+                "state": state
+            }
+        )
+
+        return Response(
+            {
+                "success": True,
+                "payment": {
+                    "payment_intent_id": intent.id,
+                    "client_secret": intent.client_secret,
+                    "amount": total_amount,
+                    "currency": "gbp",
+                    "product_name": product_name,
+                },
+                "stripe": {
+                    "publishable_key": settings.STRIPE_TEST_PUBLIC_KEY
+                }
+            },
+            status=status.HTTP_200_OK
+        )

@@ -81,6 +81,7 @@ class OrderTable(models.Model):
     )
     user = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    products = models.ManyToManyField(Product, related_name='product_lists')
     quantity = models.IntegerField()
     delivery_fee = models.DecimalField(default=0.00, decimal_places=2, max_digits=9)
     delivery_date = models.DateField(null=True, blank=True)
