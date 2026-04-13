@@ -158,12 +158,6 @@ class ProductDetailView(APIView):
 
 
 
-
-
-
-
-
-
 class CategoryProductsView(APIView):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
@@ -187,20 +181,6 @@ class CategoryProductsView(APIView):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class User_Complete_Ordedrs(APIView):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
@@ -219,12 +199,6 @@ class User_Complete_Ordedrs(APIView):
             "message": "Data fetched successfully!",
             "data": serializer.data
         })
-
-
-
-
-
-
 
 
 
