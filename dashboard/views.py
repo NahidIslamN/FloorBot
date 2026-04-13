@@ -144,39 +144,62 @@ class OrdersManagementsAdminView(APIView):
                 orders = OrderTable.objects.all().order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)
-                )
+                    Q(user__full_name__icontains=search) |
+                    Q(id__icontains=search) |
+                    Q(items__product__product_title__icontains=search) |
+                    Q(items__product__id__icontains=search)
+                ).distinct()
 
         elif query == "shipped":
             if search is None:
                 orders = OrderTable.objects.filter(status="in_transit").order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(status="in_transit") & (Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)) 
-                )
+                    Q(status="in_transit") & (
+                        Q(user__full_name__icontains=search) |
+                        Q(id__icontains=search) |
+                        Q(items__product__product_title__icontains=search) |
+                        Q(items__product__id__icontains=search)
+                    )
+                ).distinct()
 
         elif query == "unshipped":
             if search is None:
                 orders = OrderTable.objects.filter(status="placed").order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(status="placed") & (Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)) 
-                )
+                    Q(status="placed") & (
+                        Q(user__full_name__icontains=search) |
+                        Q(id__icontains=search) |
+                        Q(items__product__product_title__icontains=search) |
+                        Q(items__product__id__icontains=search)
+                    )
+                ).distinct()
         elif query == "cancelled":
           
             if search is None:
                 orders = OrderTable.objects.filter(status="cancelled").order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(status="cancelled") & (Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)) 
-                )
+                    Q(status="cancelled") & (
+                        Q(user__full_name__icontains=search) |
+                        Q(id__icontains=search) |
+                        Q(items__product__product_title__icontains=search) |
+                        Q(items__product__id__icontains=search)
+                    )
+                ).distinct()
         elif query == "delivered":
             if search is None:
                 orders = OrderTable.objects.filter(status="delivered").order_by('-id')
             else:
                 orders = OrderTable.objects.filter(
-                    Q(status="delivered") & (Q(user__full_name__icontains=search) | Q(id__icontains=search)| Q(product__product_title__icontains=search)| Q(product__id__icontains=search)) 
-                )
+                    Q(status="delivered") & (
+                        Q(user__full_name__icontains=search) |
+                        Q(id__icontains=search) |
+                        Q(items__product__product_title__icontains=search) |
+                        Q(items__product__id__icontains=search)
+                    )
+                ).distinct()
         else:
            
             return Response(
@@ -243,21 +266,6 @@ class OrdersManagementsAdminDetails(APIView):
                             "message":"Order Cancled!"
                         }
                     )
-                qty = int(serializer.validated_data.get('quantity')) 
-                
-                if order.quantity == qty:
-                    pass
-                else:
-                    if order.quantity > qty:
-                        order.product.stock_quantity += (order.quantity-qty)
-                        order.product.total_salses -= (order.quantity-qty)
-                    else:
-                        order.product.stock_quantity += (order.quantity-qty)
-                        order.product.total_salses -= (order.quantity-qty)
-                    
-                    order.product.save()
-
-                    
                 serializer.save()
                 sent_note_to_user.delay(user_id=order.user.id, title=f"Shipment confirmed!", content = "Great news! Your shipment has been confirmed and is on its way. You can track the status anytime from your dashboard. Thank you for choosing us!", note_type='success') 
                 return Response(
@@ -289,21 +297,14 @@ class OrdersManagementsAdminDetails(APIView):
             order = OrderTable.objects.get(id = pk)
             serializer = OrderTableSerializerUpdate(instance=order, data = request.data, partial=True)
             if serializer.is_valid():
-                qty = int(serializer.validated_data.get('quantity')) 
-                if order.quantity == qty:
-                    pass
-                else:
-                    if order.quantity > qty:
-                        order.product.stock_quantity += (order.quantity-qty)
-                        order.product.total_salses -= (order.quantity-qty)
-                    else:
-                        order.product.stock_quantity += (order.quantity-qty)
-                        order.product.total_salses -= (order.quantity-qty)
-                    
-                    order.product.save()
-
-                    
                 serializer.save()
+                return Response(
+                    {
+                        "success": True,
+                        "message": "Order updated successfully!"
+                    },
+                    status=status.HTTP_200_OK
+                )
             return Response(
                 {
                     "success":False,

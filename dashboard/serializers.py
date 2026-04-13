@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Images, Category, OrderTable
+from .models import Product, Images, Category, OrderTable, OrderItem
 
 
 class ImageSerializer(serializers.ModelSerializer):
@@ -110,7 +110,6 @@ class OrderTableSerializerUpdate(serializers.ModelSerializer):
         model = OrderTable
         fields = [
             'id', 
-            "quantity",
             "ship_method",
             "status",
             "carrier",
@@ -169,14 +168,28 @@ class OrderedProduct(serializers.ModelSerializer):
 
 class OrderTableSerializerView(serializers.ModelSerializer):
     user = CustomerDataSerialziser()
-    product = OrderedProduct()
+    items = serializers.SerializerMethodField()
+
+    def get_items(self, obj):
+        order_items = OrderItem.objects.filter(order=obj).select_related('product')
+        return [
+            {
+                "id": item.id,
+                "quantity": item.quantity,
+                "price": item.price,
+                "tax": item.tax,
+                "total": item.get_total(),
+                "product": OrderedProduct(item.product).data,
+            }
+            for item in order_items
+        ]
+
     class Meta:
         model = OrderTable
         fields = [
             'id', 
             "user",
-            "product",
-            "quantity",
+            "items",
             "delivery_fee",
             "delivery_date",
             # "tax_fee",
