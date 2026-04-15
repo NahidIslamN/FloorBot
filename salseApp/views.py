@@ -38,12 +38,6 @@ class Categoriesview(APIView):
 
 
 
-
-
-
-
-
-
 class ProductsView(APIView):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
@@ -114,14 +108,6 @@ class ProductsView(APIView):
                 "data": serializer.data
             })
         
-
-
-
-
-
-
-
-
 
 
 
@@ -402,15 +388,6 @@ class User_Ordedrs(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
                 
-
-
-
-
-
-
-
-
-
 
 
 def _parse_order_items_from_metadata(metadata):
