@@ -9,7 +9,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .tasks import sent_message_to_chat
 from .tasks import sent_note_to_user
 from django.db.models import Q, Count
-
+from auths.models import CustomUser
 
 
 class Unseen_Notifications_count(APIView):
